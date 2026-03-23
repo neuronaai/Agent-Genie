@@ -1,20 +1,6 @@
 # ============================================================
 # AgentGenie — Render Blueprint (render.yaml)
 # ============================================================
-# Place this file at the repository root.
-#
-# Repo layout:
-#   render.yaml
-#   main_app/
-#   services/openai_brain/
-#
-# Services:
-#   - agentgenie-web    : Flask + Gunicorn
-#   - agentgenie-brain  : FastAPI + Uvicorn
-#   - agentgenie-worker : Celery worker
-#   - agentgenie-redis  : Redis
-#   - agentgenie-db     : Postgres
-# ============================================================
 
 services:
   # ----------------------------------------------------------
@@ -37,6 +23,7 @@ services:
     preDeployCommand: bash scripts/release.sh
     healthCheckPath: /login
     autoDeploy: true
+
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -45,46 +32,48 @@ services:
       - key: FLASK_APP
         value: wsgi.py
 
-      # Core app secrets
+      # Core secrets
       - key: SECRET_KEY
         generateValue: true
       - key: CREDENTIAL_ENCRYPTION_KEY
         generateValue: true
 
-      # Database / queue
+      # Database / Redis
       - key: DATABASE_URL
         fromDatabase:
           name: agentgenie-db
           property: connectionString
+
       - key: CELERY_BROKER_URL
         fromService:
           name: agentgenie-redis
           type: redis
           property: connectionString
+
       - key: CELERY_RESULT_BACKEND
         fromService:
           name: agentgenie-redis
           type: redis
           property: connectionString
 
-      # App identity
+      # Platform
       - key: PLATFORM_NAME
         value: AgentGenie
       - key: PLATFORM_DOMAIN
         sync: false
 
-      # AI brain integration
+      # AI Integration (IMPORTANT — KEEP THIS)
       - key: OPENAI_API_KEY_CUSTOM
         sync: false
+
       - key: OPENAI_BRAIN_URL
         sync: false
-      - key: BRAIN_SERVICE_TOKEN
-        fromService:
-          name: agentgenie-brain
-          type: web
-          envVarKey: BRAIN_SERVICE_TOKEN
 
-      # Optional provider keys
+      # 🔥 FIXED — NO AUTO-INJECTION
+      - key: BRAIN_SERVICE_TOKEN
+        sync: false
+
+      # Optional integrations (safe)
       - key: STRIPE_SECRET_KEY
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
@@ -142,16 +131,22 @@ services:
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     autoDeploy: true
+
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
+
+      # ✅ Correct: brain gets OpenAI key from web
       - key: OPENAI_API_KEY_CUSTOM
         fromService:
           name: agentgenie-web
           type: web
           envVarKey: OPENAI_API_KEY_CUSTOM
+
+      # 🔥 FIXED
       - key: BRAIN_SERVICE_TOKEN
-        generateValue: true
+        sync: false
+
       - key: BRAIN_MOCK_MODE
         value: "false"
 
@@ -171,6 +166,7 @@ services:
       --concurrency=2
       --max-tasks-per-child=100
     autoDeploy: true
+
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -179,37 +175,38 @@ services:
       - key: FLASK_APP
         value: wsgi.py
 
-      # Core app secrets copied from web
+      # Shared secrets
       - key: SECRET_KEY
         fromService:
           name: agentgenie-web
           type: web
           envVarKey: SECRET_KEY
+
       - key: CREDENTIAL_ENCRYPTION_KEY
         fromService:
           name: agentgenie-web
           type: web
           envVarKey: CREDENTIAL_ENCRYPTION_KEY
 
-      # Database / queue
+      # DB / Redis
       - key: DATABASE_URL
         fromDatabase:
           name: agentgenie-db
           property: connectionString
+
       - key: CELERY_BROKER_URL
         fromService:
           name: agentgenie-redis
           type: redis
           property: connectionString
+
       - key: CELERY_RESULT_BACKEND
         fromService:
           name: agentgenie-redis
           type: redis
           property: connectionString
 
-      # Worker optional provider keys:
-      # Set directly in dashboard only if worker truly needs them.
-      # This avoids blueprint creation failures.
+      # Optional worker integrations
       - key: SENDGRID_API_KEY
         sync: false
       - key: SENDGRID_FROM_EMAIL
@@ -249,9 +246,6 @@ services:
     ipAllowList: []
 
 databases:
-  # ----------------------------------------------------------
-  # PostgreSQL
-  # ----------------------------------------------------------
   - name: agentgenie-db
     plan: basic-256mb
     databaseName: agentgenie
