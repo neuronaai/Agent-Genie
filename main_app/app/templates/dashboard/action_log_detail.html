@@ -1,0 +1,115 @@
+{% extends "layouts/dashboard.html" %}
+{% block page_title %}Action Log — {{ log.tool_name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+  <!-- Back Link -->
+  <a href="{{ url_for('dashboard.action_logs') }}" class="inline-flex items-center gap-1 text-sm text-brand-600 hover:text-brand-700">
+    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    Back to Action Logs
+  </a>
+
+  <!-- Header -->
+  <div class="flex items-center gap-4">
+    <div class="w-12 h-12 rounded-xl flex items-center justify-center
+      {% if log.status == 'success' %}bg-green-100 text-green-600
+      {% elif log.status == 'failed' %}bg-red-100 text-red-600
+      {% else %}bg-amber-100 text-amber-600{% endif %}">
+      {% if log.status == 'success' %}
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+      {% elif log.status == 'failed' %}
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      {% else %}
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+      {% endif %}
+    </div>
+    <div>
+      <h2 class="text-2xl font-bold text-surface-900">{{ log.tool_name }}</h2>
+      <div class="flex items-center gap-3 mt-1">
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase
+          {% if log.tool_type == 'real_time' %}bg-blue-50 text-blue-700{% else %}bg-surface-100 text-surface-600{% endif %}">
+          {{ 'Real-Time' if log.tool_type == 'real_time' else 'Post-Call' }}
+        </span>
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold uppercase
+          {% if log.status == 'success' %}bg-green-50 text-green-700
+          {% elif log.status == 'failed' %}bg-red-50 text-red-700
+          {% else %}bg-amber-50 text-amber-700{% endif %}">
+          {{ log.status|title }}
+        </span>
+        <span class="text-xs text-surface-500">{{ log.created_at.strftime('%b %d, %Y at %H:%M:%S') if log.created_at else '' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary Card -->
+  <div class="bg-white rounded-2xl border border-surface-200/60 shadow-card overflow-hidden">
+    <div class="px-6 py-4 border-b border-surface-100">
+      <h3 class="text-lg font-semibold text-surface-900">Execution Details</h3>
+    </div>
+    <div class="px-6 py-4">
+      <dl class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div>
+          <dt class="text-xs font-medium text-surface-500 uppercase">Agent</dt>
+          <dd class="mt-1 text-sm font-medium text-surface-800">{{ log.agent.name if log.agent else 'Unknown' }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium text-surface-500 uppercase">Execution Time</dt>
+          <dd class="mt-1 text-sm font-medium text-surface-800">{{ log.execution_ms or 0 }}ms</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium text-surface-500 uppercase">Retry Count</dt>
+          <dd class="mt-1 text-sm font-medium text-surface-800">{{ log.retry_count or 0 }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium text-surface-500 uppercase">Call Log</dt>
+          <dd class="mt-1 text-sm font-medium text-surface-800">
+            {% if log.call_log_id %}
+              <a href="{{ url_for('dashboard.call_detail', call_id=log.call_log_id) }}" class="text-brand-600 hover:underline">View Call</a>
+            {% else %}
+              N/A
+            {% endif %}
+          </dd>
+        </div>
+      </dl>
+    </div>
+  </div>
+
+  {% if log.error_message %}
+  <!-- Error Message -->
+  <div class="bg-red-50 rounded-2xl border border-red-200 p-6">
+    <h3 class="text-sm font-semibold text-red-800 mb-2">Error Message</h3>
+    <pre class="text-sm text-red-700 whitespace-pre-wrap font-mono">{{ log.error_message }}</pre>
+  </div>
+  {% endif %}
+
+  <!-- Request Payload -->
+  <div class="bg-white rounded-2xl border border-surface-200/60 shadow-card overflow-hidden">
+    <div class="px-6 py-4 border-b border-surface-100">
+      <h3 class="text-lg font-semibold text-surface-900">Request Payload</h3>
+    </div>
+    <div class="px-6 py-4">
+      {% if log.request_payload %}
+        <pre class="text-sm text-surface-700 bg-surface-50 rounded-xl p-4 overflow-x-auto font-mono">{{ log.request_payload|tojson(indent=2) }}</pre>
+      {% else %}
+        <p class="text-sm text-surface-500 italic">No request payload recorded.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Response Payload -->
+  <div class="bg-white rounded-2xl border border-surface-200/60 shadow-card overflow-hidden">
+    <div class="px-6 py-4 border-b border-surface-100">
+      <h3 class="text-lg font-semibold text-surface-900">Response Payload</h3>
+    </div>
+    <div class="px-6 py-4">
+      {% if log.response_payload %}
+        <pre class="text-sm text-surface-700 bg-surface-50 rounded-xl p-4 overflow-x-auto font-mono">{{ log.response_payload|tojson(indent=2) }}</pre>
+      {% else %}
+        <p class="text-sm text-surface-500 italic">No response payload recorded.</p>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

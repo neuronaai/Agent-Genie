@@ -1,0 +1,30 @@
+{% extends "layouts/admin.html" %}
+{% block page_title %}Partners{% endblock %}
+{% block content %}
+<div class="bg-white rounded-xl border border-surface-200">
+    <table class="w-full">
+        <thead>
+            <tr class="border-b border-surface-200">
+                <th class="px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-surface-400">Name</th>
+                <th class="px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-surface-400">Subdomain</th>
+                <th class="px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-surface-400">Status</th>
+                <th class="px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-surface-400">Tenants</th>
+                <th class="px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-surface-400">Created</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-surface-100">
+            {% for p in partners %}
+            <tr class="hover:bg-surface-50 transition">
+                <td class="px-6 py-4 text-sm font-medium text-surface-900">{{ p.name }}</td>
+                <td class="px-6 py-4 text-sm font-mono text-surface-600">{{ p.subdomain }}</td>
+                <td class="px-6 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold {% if p.status == 'active' %}bg-emerald-50 text-emerald-700{% else %}bg-amber-50 text-amber-700{% endif %}">{{ p.status|capitalize }}</span></td>
+                <td class="px-6 py-4 text-sm text-surface-700">{{ p.tenants|length }}</td>
+                <td class="px-6 py-4 text-sm text-surface-500">{{ p.created_at.strftime('%b %d, %Y') if p.created_at else '' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="px-6 py-12 text-center text-sm text-surface-500">No partners yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

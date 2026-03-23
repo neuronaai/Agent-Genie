@@ -1,0 +1,166 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block page_title %}Knowledge Base — {{ agent.name }}{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('dashboard.agent_detail', agent_id=agent.id) }}" class="px-4 py-2 rounded-xl border border-surface-200 text-sm font-medium text-surface-600 hover:bg-surface-50 transition flex items-center gap-2">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+    Back to Agent
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+
+    <!-- Header -->
+    <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-5 bg-gradient-to-r from-surface-50 to-white border-b border-surface-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-extrabold text-surface-900">Knowledge Base</h2>
+                    <p class="text-sm text-surface-500 mt-1">{{ items|length }} item{{ 's' if items|length != 1 else '' }} for <strong>{{ agent.name }}</strong></p>
+                </div>
+                <button type="button" onclick="document.getElementById('addModal').classList.remove('hidden')" class="px-5 py-2.5 rounded-xl gradient-brand text-white text-sm font-bold shadow-premium hover:shadow-premium-md transition flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    Add Item
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Items List -->
+    {% if items %}
+    <div class="space-y-3">
+        {% for item in items %}
+        <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+            <div class="px-6 py-4 flex items-start justify-between">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold
+                            {% if item.type == 'faq' %}bg-blue-100 text-blue-700
+                            {% elif item.type == 'url' %}bg-purple-100 text-purple-700
+                            {% elif item.type == 'file' %}bg-amber-100 text-amber-700
+                            {% elif item.type == 'service' %}bg-emerald-100 text-emerald-700
+                            {% elif item.type == 'discount' %}bg-pink-100 text-pink-700
+                            {% elif item.type == 'hours_location' %}bg-cyan-100 text-cyan-700
+                            {% elif item.type == 'booking_link' %}bg-indigo-100 text-indigo-700
+                            {% elif item.type == 'support_escalation' %}bg-orange-100 text-orange-700
+                            {% elif item.type == 'handoff_instruction' %}bg-red-100 text-red-700
+                            {% else %}bg-surface-100 text-surface-600{% endif %}">
+                            {{ item.type|replace('_', ' ')|title }}
+                        </span>
+                        {% if item.category %}
+                        <span class="text-xs text-surface-400">{{ item.category }}</span>
+                        {% endif %}
+                    </div>
+                    <h4 class="text-sm font-bold text-surface-800 truncate">{{ item.title }}</h4>
+                    {% if item.content %}
+                    <p class="text-xs text-surface-500 mt-1 line-clamp-2">{{ item.content[:200] }}</p>
+                    {% endif %}
+                    {% if item.url %}
+                    <p class="text-xs text-brand-600 mt-1 truncate">{{ item.url }}</p>
+                    {% endif %}
+                    {% if item.file_name %}
+                    <p class="text-xs text-surface-400 mt-1">File: {{ item.file_name }} ({{ (item.file_size / 1024)|round(1) }}KB)</p>
+                    {% endif %}
+                    <p class="text-xs text-surface-300 mt-1">Added {{ item.created_at.strftime('%b %d, %Y') }}</p>
+                </div>
+                <div class="flex items-center gap-2 ml-4 shrink-0">
+                    <a href="{{ url_for('dashboard.kb_edit', agent_id=agent.id, item_id=item.id) }}" class="p-2 rounded-lg text-surface-400 hover:text-brand-600 hover:bg-brand-50 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    </a>
+                    <form method="POST" action="{{ url_for('dashboard.kb_delete', agent_id=agent.id, item_id=item.id) }}" onsubmit="return confirm('Delete this item?')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="p-2 rounded-lg text-surface-400 hover:text-red-600 hover:bg-red-50 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-2xl border border-surface-200 shadow-sm p-12 text-center">
+        <svg class="w-12 h-12 text-surface-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        <h3 class="text-lg font-bold text-surface-700 mb-1">No knowledge base items yet</h3>
+        <p class="text-sm text-surface-500 mb-4">Add FAQs, service descriptions, business hours, and more to help your agent answer questions accurately.</p>
+        <button type="button" onclick="document.getElementById('addModal').classList.remove('hidden')" class="px-5 py-2.5 rounded-xl gradient-brand text-white text-sm font-bold shadow-premium hover:shadow-premium-md transition">Add First Item</button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Add Item Modal -->
+<div id="addModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4">
+        <form method="POST" action="{{ url_for('dashboard.kb_add', agent_id=agent.id) }}" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="px-6 py-5 border-b border-surface-200 flex items-center justify-between">
+                <h3 class="text-lg font-extrabold text-surface-900">Add Knowledge Base Item</h3>
+                <button type="button" onclick="document.getElementById('addModal').classList.add('hidden')" class="text-surface-400 hover:text-surface-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs text-surface-500 font-bold uppercase tracking-wider mb-1">Type</label>
+                    <select name="type" id="kb-type-select" onchange="toggleKBFields()" class="w-full px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm focus:ring-2 focus:ring-brand-500">
+                        <option value="text">Manual Text Note</option>
+                        <option value="faq">FAQ</option>
+                        <option value="url">Business URL</option>
+                        <option value="file">Uploaded File</option>
+                        <option value="service">Service Description</option>
+                        <option value="discount">Discount / Promotional Item</option>
+                        <option value="hours_location">Hours / Location Detail</option>
+                        <option value="support_escalation">Support Escalation Instruction</option>
+                        <option value="booking_link">Booking / Calendar Link</option>
+                        <option value="handoff_instruction">Handoff Instruction</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-surface-500 font-bold uppercase tracking-wider mb-1">Title</label>
+                    <input type="text" name="title" required class="w-full px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm focus:ring-2 focus:ring-brand-500" placeholder="Brief title for this item">
+                </div>
+                <div>
+                    <label class="block text-xs text-surface-500 font-bold uppercase tracking-wider mb-1">Category (optional)</label>
+                    <input type="text" name="category" class="w-full px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm focus:ring-2 focus:ring-brand-500" placeholder="e.g. pricing, hours, services">
+                </div>
+                <div id="kb-content-field">
+                    <label class="block text-xs text-surface-500 font-bold uppercase tracking-wider mb-1">Content</label>
+                    <textarea name="content" rows="4" class="w-full px-4 py-3 rounded-xl border border-surface-200 text-surface-800 text-sm leading-relaxed focus:ring-2 focus:ring-brand-500" placeholder="Enter the knowledge content..."></textarea>
+                </div>
+                <div id="kb-url-field" class="hidden">
+                    <label class="block text-xs text-surface-500 font-bold uppercase tracking-wider mb-1">URL</label>
+                    <input type="url" name="url" class="w-full px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm focus:ring-2 focus:ring-brand-500" placeholder="https://...">
+                </div>
+                <div id="kb-file-field" class="hidden">
+                    <label class="block text-xs text-surface-500 font-bold uppercase tracking-wider mb-1">Upload File</label>
+                    <input type="file" name="file" accept=".txt,.pdf,.doc,.docx,.csv,.json,.md" class="w-full text-sm text-surface-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-brand-50 file:text-brand-600 hover:file:bg-brand-100">
+                    <p class="text-xs text-surface-400 mt-1">Max 10MB. Accepted: .txt, .pdf, .doc, .docx, .csv, .json, .md</p>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-surface-200 bg-surface-50 flex items-center justify-end gap-3">
+                <button type="button" onclick="document.getElementById('addModal').classList.add('hidden')" class="px-4 py-2.5 rounded-xl border border-surface-200 text-surface-600 text-sm font-bold hover:bg-surface-100 transition">Cancel</button>
+                <button type="submit" class="px-5 py-2.5 rounded-xl gradient-brand text-white text-sm font-bold shadow-premium hover:shadow-premium-md transition">Add Item</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function toggleKBFields() {
+    const type = document.getElementById('kb-type-select').value;
+    const contentField = document.getElementById('kb-content-field');
+    const urlField = document.getElementById('kb-url-field');
+    const fileField = document.getElementById('kb-file-field');
+    contentField.classList.remove('hidden');
+    urlField.classList.add('hidden');
+    fileField.classList.add('hidden');
+    if (type === 'url' || type === 'booking_link') {
+        urlField.classList.remove('hidden');
+    } else if (type === 'file') {
+        fileField.classList.remove('hidden');
+    }
+}
+</script>
+{% endblock %}

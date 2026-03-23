@@ -1,0 +1,53 @@
+{% extends "layouts/dashboard.html" %}
+{% block page_title %}Invoices{% endblock %}
+{% block header_actions %}
+<a href="{{ url_for('dashboard.billing') }}" class="text-sm font-medium text-surface-500 hover:text-surface-700 transition">Back to Billing</a>
+{% endblock %}
+{% block content %}
+<div class="max-w-4xl">
+    <div class="bg-white rounded-xl border border-surface-200">
+        <div class="px-6 py-4 border-b border-surface-200">
+            <h2 class="text-sm font-semibold text-surface-900">All Invoices</h2>
+        </div>
+        <table class="w-full">
+            <thead>
+                <tr class="border-b border-surface-200">
+                    <th class="px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-surface-400">Date</th>
+                    <th class="px-6 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-surface-400">Amount Due</th>
+                    <th class="px-6 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-surface-400">Amount Paid</th>
+                    <th class="px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-surface-400">Status</th>
+                    <th class="px-6 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-surface-400">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-surface-100">
+                {% for inv in invoices %}
+                <tr class="hover:bg-surface-50 transition">
+                    <td class="px-6 py-4 text-sm text-surface-700">{{ inv.created_at.strftime('%b %d, %Y') if inv.created_at else '' }}</td>
+                    <td class="px-6 py-4 text-sm font-medium text-surface-900 text-right">${{ '%.2f'|format(inv.amount_due_cents / 100) }}</td>
+                    <td class="px-6 py-4 text-sm text-surface-700 text-right">${{ '%.2f'|format(inv.amount_paid_cents / 100) }}</td>
+                    <td class="px-6 py-4">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold
+                            {% if inv.status == 'paid' %}bg-emerald-50 text-emerald-700
+                            {% elif inv.status == 'open' %}bg-amber-50 text-amber-700
+                            {% elif inv.status == 'void' %}bg-surface-100 text-surface-500
+                            {% elif inv.status == 'uncollectible' %}bg-red-50 text-red-700
+                            {% else %}bg-blue-50 text-blue-700{% endif %}">
+                            {{ inv.status|capitalize }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        {% if inv.invoice_pdf_url %}
+                        <a href="{{ inv.invoice_pdf_url }}" target="_blank" class="text-xs font-medium text-brand-600 hover:text-brand-700">Download PDF</a>
+                        {% else %}
+                        <span class="text-xs text-surface-400">&mdash;</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="px-6 py-12 text-center text-sm text-surface-500">No invoices yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

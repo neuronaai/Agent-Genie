@@ -1,0 +1,113 @@
+{% extends "layouts/dashboard.html" %}
+{% block page_title %}Action Logs{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6">
+
+  <!-- Header -->
+  <div>
+    <h2 class="text-2xl font-bold text-surface-900">Action Logs</h2>
+    <p class="mt-1 text-sm text-surface-500">Debug and monitor tool executions across all agents.</p>
+  </div>
+
+  <!-- Filters -->
+  <div class="bg-white rounded-2xl border border-surface-200/60 shadow-card p-4">
+    <form method="GET" class="flex flex-wrap items-center gap-4">
+      <div>
+        <label class="block text-xs font-medium text-surface-500 mb-1">Status</label>
+        <select name="status" class="px-3 py-2 text-sm border border-surface-200 rounded-lg focus:ring-2 focus:ring-brand-500">
+          <option value="">All Statuses</option>
+          <option value="success" {% if status_filter == 'success' %}selected{% endif %}>Success</option>
+          <option value="failed" {% if status_filter == 'failed' %}selected{% endif %}>Failed</option>
+          <option value="retrying" {% if status_filter == 'retrying' %}selected{% endif %}>Retrying</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-surface-500 mb-1">Agent</label>
+        <select name="agent_id" class="px-3 py-2 text-sm border border-surface-200 rounded-lg focus:ring-2 focus:ring-brand-500">
+          <option value="">All Agents</option>
+          {% for a in agents %}
+          <option value="{{ a.id }}" {% if agent_filter == a.id %}selected{% endif %}>{{ a.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-surface-500 mb-1">Type</label>
+        <select name="type" class="px-3 py-2 text-sm border border-surface-200 rounded-lg focus:ring-2 focus:ring-brand-500">
+          <option value="">All Types</option>
+          <option value="real_time" {% if type_filter == 'real_time' %}selected{% endif %}>Real-Time</option>
+          <option value="post_call" {% if type_filter == 'post_call' %}selected{% endif %}>Post-Call</option>
+        </select>
+      </div>
+      <div class="pt-5">
+        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg shadow-sm transition">
+          Filter
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Logs Table -->
+  <div class="bg-white rounded-2xl border border-surface-200/60 shadow-card overflow-hidden">
+    {% if logs %}
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead>
+          <tr class="border-b border-surface-100 bg-surface-50/50">
+            <th class="px-6 py-3 text-left text-xs font-semibold text-surface-500 uppercase tracking-wider">Tool</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold text-surface-500 uppercase tracking-wider">Type</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold text-surface-500 uppercase tracking-wider">Status</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold text-surface-500 uppercase tracking-wider">Agent</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold text-surface-500 uppercase tracking-wider">Duration</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold text-surface-500 uppercase tracking-wider">Time</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold text-surface-500 uppercase tracking-wider"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-surface-100">
+          {% for log in logs %}
+          <tr class="hover:bg-surface-50/50 transition">
+            <td class="px-6 py-3">
+              <span class="text-sm font-medium text-surface-800">{{ log.tool_name }}</span>
+            </td>
+            <td class="px-6 py-3">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase
+                {% if log.tool_type == 'real_time' %}bg-blue-50 text-blue-700{% else %}bg-surface-100 text-surface-600{% endif %}">
+                {{ 'Real-Time' if log.tool_type == 'real_time' else 'Post-Call' }}
+              </span>
+            </td>
+            <td class="px-6 py-3">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold uppercase
+                {% if log.status == 'success' %}bg-green-50 text-green-700
+                {% elif log.status == 'failed' %}bg-red-50 text-red-700
+                {% else %}bg-amber-50 text-amber-700{% endif %}">
+                <span class="w-1.5 h-1.5 rounded-full
+                  {% if log.status == 'success' %}bg-green-500
+                  {% elif log.status == 'failed' %}bg-red-500
+                  {% else %}bg-amber-500{% endif %}"></span>
+                {{ log.status|title }}
+              </span>
+            </td>
+            <td class="px-6 py-3 text-sm text-surface-600">{{ log.agent.name if log.agent else 'Unknown' }}</td>
+            <td class="px-6 py-3 text-sm text-surface-600">{{ log.execution_ms or 0 }}ms</td>
+            <td class="px-6 py-3 text-sm text-surface-500">{{ log.created_at.strftime('%b %d, %H:%M') if log.created_at else '' }}</td>
+            <td class="px-6 py-3">
+              <a href="{{ url_for('dashboard.action_log_detail', log_id=log.id) }}" class="text-brand-600 hover:text-brand-700 text-sm font-medium">
+                Details
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="px-6 py-12 text-center">
+      <svg class="w-12 h-12 mx-auto text-surface-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      <h3 class="mt-4 text-lg font-semibold text-surface-700">No action logs yet</h3>
+      <p class="mt-1 text-sm text-surface-500">Tool executions will appear here once agents start using their assigned tools.</p>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

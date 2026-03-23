@@ -1,0 +1,80 @@
+{% extends "layouts/dashboard.html" %}
+{% block page_title %}Organization Profile{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-5 bg-gradient-to-r from-surface-50 to-white border-b border-surface-200">
+            <h2 class="text-xl font-extrabold text-surface-900">Organization Profile</h2>
+            <p class="text-sm text-surface-500 mt-1">Manage your organization details and preferences.</p>
+        </div>
+        <form method="POST" action="{{ url_for('dashboard.organization_profile') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs text-surface-500 font-bold uppercase tracking-wider mb-1">Organization Name</label>
+                    <input type="text" name="name" value="{{ org.name if org else '' }}" required class="w-full px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-surface-500 font-bold uppercase tracking-wider mb-1">Website</label>
+                        <input type="url" name="website" value="{{ org.website if org else '' }}" class="w-full px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm focus:ring-2 focus:ring-brand-500" placeholder="https://...">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-surface-500 font-bold uppercase tracking-wider mb-1">Industry</label>
+                        <input type="text" name="industry" value="{{ org.industry if org else '' }}" class="w-full px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm focus:ring-2 focus:ring-brand-500" placeholder="e.g. Healthcare, Retail">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-surface-500 font-bold uppercase tracking-wider mb-1">Support Email</label>
+                        <input type="email" name="support_email" value="{{ org.support_email if org else '' }}" class="w-full px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm focus:ring-2 focus:ring-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-surface-500 font-bold uppercase tracking-wider mb-1">Support Phone</label>
+                        <input type="tel" name="support_phone" value="{{ org.support_phone if org else '' }}" class="w-full px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm focus:ring-2 focus:ring-brand-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs text-surface-500 font-bold uppercase tracking-wider mb-1">Timezone</label>
+                    <select name="timezone" class="w-full px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm focus:ring-2 focus:ring-brand-500">
+                        {% for tz in ['UTC', 'US/Eastern', 'US/Central', 'US/Mountain', 'US/Pacific', 'US/Hawaii', 'Europe/London', 'Europe/Berlin', 'Asia/Tokyo', 'Asia/Shanghai', 'Australia/Sydney'] %}
+                        <option value="{{ tz }}" {% if org and org.timezone == tz %}selected{% endif %}>{{ tz }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                {# ── Feature Preferences ── #}
+                <div class="border-t border-surface-200 pt-4 mt-2">
+                    <p class="text-xs text-surface-500 font-bold uppercase tracking-wider mb-3">Feature Preferences</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-surface-500 font-bold uppercase tracking-wider mb-1">Call Recordings</label>
+                            <select name="recordings_enabled" class="w-full px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm focus:ring-2 focus:ring-brand-500">
+                                <option value="default" {% if recordings_enabled_override is none %}selected{% endif %}>Use Platform Default</option>
+                                <option value="true" {% if recordings_enabled_override is sameas true %}selected{% endif %}>Enabled</option>
+                                <option value="false" {% if recordings_enabled_override is sameas false %}selected{% endif %}>Disabled</option>
+                            </select>
+                            <p class="text-[10px] text-surface-400 mt-1">Controls whether call recordings are visible on your Recordings page.</p>
+                        </div>
+                    </div>
+                </div>
+
+                {% if tenant %}
+                <div class="bg-surface-50 rounded-xl p-4 border border-surface-100">
+                    <p class="text-xs text-surface-500 font-bold uppercase tracking-wider mb-2">Tenant Details</p>
+                    <div class="grid grid-cols-2 gap-2 text-xs text-surface-600">
+                        <span>Tenant ID:</span><span class="font-mono">{{ tenant.id[:12] }}...</span>
+                        <span>Status:</span><span class="font-bold">{{ tenant.status|title }}</span>
+                        <span>Created:</span><span>{{ tenant.created_at.strftime('%b %d, %Y') if tenant.created_at else 'N/A' }}</span>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="px-6 py-4 border-t border-surface-200 bg-surface-50 flex items-center justify-end">
+                <button type="submit" class="px-5 py-2.5 rounded-xl gradient-brand text-white text-sm font-bold shadow-premium hover:shadow-premium-md transition">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

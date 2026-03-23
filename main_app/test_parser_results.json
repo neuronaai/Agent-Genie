@@ -1,0 +1,354 @@
+[
+  {
+    "test": "1. INCOMPLETE PROMPT - Bare minimum",
+    "status": "PASS",
+    "elapsed_seconds": 6.54,
+    "agent_name": "PizzaPal",
+    "tone": "cheerful",
+    "greeting": "Hello! Thank you for calling our pizza shop. How can I assist you today?",
+    "has_role_description": true,
+    "role_description_length": 702,
+    "has_business_context": true,
+    "handoff_rules_count": 1,
+    "guardrails_count": 1,
+    "missing_info_count": 5,
+    "missing_info": [
+      "Company/business name",
+      "Core services or products offered beyond pizzas",
+      "Business hours / timezone",
+      "Phone number for transferring to a human (if handoff is desired)",
+      "Any specific policies or procedures callers commonly ask about"
+    ],
+    "handoff_rules": [
+      {
+        "condition": "caller explicitly asks for a human",
+        "destination_number": null,
+        "transfer_message": "Let me connect you to one of our team members for further assistance."
+      }
+    ],
+    "guardrails": [
+      "medical advice"
+    ]
+  },
+  {
+    "test": "2. INCOMPLETE PROMPT - No industry, no details",
+    "status": "PASS",
+    "elapsed_seconds": 5.54,
+    "agent_name": "Customer Support Genie",
+    "tone": "professional",
+    "greeting": "Hello! Thank you for calling our business. How may I assist you today?",
+    "has_role_description": true,
+    "role_description_length": 729,
+    "has_business_context": true,
+    "handoff_rules_count": 1,
+    "guardrails_count": 1,
+    "missing_info_count": 6,
+    "missing_info": [
+      "Company/business name",
+      "Core services or products offered",
+      "Target audience or typical callers",
+      "Business hours / timezone",
+      "Phone number for transferring to a human",
+      "Any specific policies or procedures callers commonly ask about"
+    ],
+    "handoff_rules": [
+      {
+        "condition": "caller explicitly asks for a human",
+        "destination_number": null,
+        "transfer_message": "Let me connect you to a representative who can assist you further."
+      }
+    ],
+    "guardrails": [
+      "medical/legal/financial advice"
+    ]
+  },
+  {
+    "test": "3. CONTRADICTORY INSTRUCTIONS",
+    "status": "PASS",
+    "elapsed_seconds": 5.31,
+    "agent_name": "LawFirmBot",
+    "tone": "casual yet professional",
+    "greeting": "Hello! You've reached the law firm. How can I assist you today?",
+    "has_role_description": true,
+    "role_description_length": 700,
+    "has_business_context": true,
+    "handoff_rules_count": 2,
+    "guardrails_count": 2,
+    "missing_info_count": 3,
+    "missing_info": [
+      "Company/business name",
+      "Core services or products offered",
+      "Target audience or typical callers"
+    ],
+    "handoff_rules": [
+      {
+        "condition": "caller explicitly mentions an emergency",
+        "destination_number": "555-1234",
+        "transfer_message": "Let me transfer you to our emergency line right away."
+      },
+      {
+        "condition": "caller explicitly asks for a human",
+        "destination_number": null,
+        "transfer_message": "I'm sorry, but I'm unable to transfer calls at the moment. How else can I assist you?"
+      }
+    ],
+    "guardrails": [
+      "legal advice",
+      "financial advice"
+    ]
+  },
+  {
+    "test": "4. MISSING PHONE NUMBERS FOR HANDOFF",
+    "status": "PASS",
+    "elapsed_seconds": 6.8,
+    "agent_name": "MediAssist Agent",
+    "tone": "professional",
+    "greeting": "Hello, thank you for calling our medical clinic. How may I assist you today?",
+    "has_role_description": true,
+    "role_description_length": 953,
+    "has_business_context": true,
+    "handoff_rules_count": 4,
+    "guardrails_count": 1,
+    "missing_info_count": 4,
+    "missing_info": [
+      "Company/business name",
+      "Phone number for transferring to a human",
+      "Business hours / timezone",
+      "Specific policies or procedures callers commonly ask about"
+    ],
+    "handoff_rules": [
+      {
+        "condition": "caller mentions a medical emergency",
+        "destination_number": null,
+        "transfer_message": "I will transfer you to a doctor immediately. Please hold on."
+      },
+      {
+        "condition": "caller wants to schedule an appointment",
+        "destination_number": null,
+        "transfer_message": "I will connect you to the front desk to schedule your appointment."
+      },
+      {
+        "condition": "caller has billing questions",
+        "destination_number": null,
+        "transfer_message": "I will transfer you to our accounting department for assistance with billing."
+      },
+      {
+        "condition": "caller explicitly asks for a human",
+        "destination_number": null,
+        "transfer_message": "Please hold, I will transfer you to a team member."
+      }
+    ],
+    "guardrails": [
+      "medical advice"
+    ]
+  },
+  {
+    "test": "5. INVALID BUSINESS HOURS",
+    "status": "PASS",
+    "elapsed_seconds": 5.98,
+    "agent_name": "Friendly Retail Assistant",
+    "tone": "warm and professional",
+    "greeting": "Thank you for calling our retail store. How may I assist you today?",
+    "has_role_description": true,
+    "role_description_length": 689,
+    "has_business_context": true,
+    "handoff_rules_count": 1,
+    "guardrails_count": 1,
+    "missing_info_count": 6,
+    "missing_info": [
+      "Company/business name",
+      "Core services or products offered",
+      "Typical callers or target audience",
+      "Correct business hours / timezone",
+      "Phone number for transferring to a human",
+      "Specific policies or procedures callers commonly ask about"
+    ],
+    "handoff_rules": [
+      {
+        "condition": "caller explicitly asks for a human",
+        "destination_number": null,
+        "transfer_message": "Let me transfer you to a human representative who can assist you further."
+      }
+    ],
+    "guardrails": [
+      "medical advice"
+    ]
+  },
+  {
+    "test": "6. WEAK/PARTIAL KNOWLEDGE BASE",
+    "status": "PASS",
+    "elapsed_seconds": 6.23,
+    "agent_name": "DentalCare Assistant",
+    "tone": "empathetic",
+    "greeting": "Thank you for calling DentalCare. How can I assist you today?",
+    "has_role_description": true,
+    "role_description_length": 760,
+    "has_business_context": true,
+    "handoff_rules_count": 2,
+    "guardrails_count": 2,
+    "missing_info_count": 4,
+    "missing_info": [
+      "Company/business name",
+      "Business hours / timezone",
+      "Phone number for transferring to a human",
+      "Any specific policies or procedures callers commonly ask about"
+    ],
+    "handoff_rules": [
+      {
+        "condition": "caller asks to speak with the dentist",
+        "destination_number": null,
+        "transfer_message": "Let me connect you with someone who can help."
+      },
+      {
+        "condition": "caller explicitly asks for a human",
+        "destination_number": null,
+        "transfer_message": "I will transfer you to one of our team members right away."
+      }
+    ],
+    "guardrails": [
+      "provide medical advice",
+      "financial advice regarding treatments"
+    ]
+  },
+  {
+    "test": "7. REAL ESTATE INDUSTRY",
+    "status": "PASS",
+    "elapsed_seconds": 6.07,
+    "agent_name": "Luxury Condo Specialist",
+    "tone": "professional",
+    "greeting": "Hello, thank you for calling the Miami Luxury Condos real estate office. How can...",
+    "has_role_description": true,
+    "role_description_length": 820,
+    "has_business_context": true,
+    "handoff_rules_count": 2,
+    "guardrails_count": 1,
+    "missing_info_count": 1,
+    "missing_info": [
+      "Company/business name"
+    ],
+    "handoff_rules": [
+      {
+        "condition": "caller indicates they are a serious buyer",
+        "destination_number": "3055558888",
+        "transfer_message": "Great! Let me transfer you to our specialist who can assist you further."
+      },
+      {
+        "condition": "caller explicitly asks for a human",
+        "destination_number": "3055558888",
+        "transfer_message": "Sure, I will connect you with a person who can help."
+      }
+    ],
+    "guardrails": [
+      "Providing legal or financial advice"
+    ]
+  },
+  {
+    "test": "8. HEALTHCARE WITH COMPLIANCE CONCERNS",
+    "status": "PASS",
+    "elapsed_seconds": 6.51,
+    "agent_name": "TheraTalk AI",
+    "tone": "empathetic",
+    "greeting": "Thank you for calling our therapy practice. How may I assist you today?",
+    "has_role_description": true,
+    "role_description_length": 1098,
+    "has_business_context": true,
+    "handoff_rules_count": 2,
+    "guardrails_count": 1,
+    "missing_info_count": 3,
+    "missing_info": [
+      "Company/business name",
+      "Target audience or typical callers",
+      "Phone number for transferring to a human"
+    ],
+    "handoff_rules": [
+      {
+        "condition": "caller mentions suicidal thoughts",
+        "destination_number": "988",
+        "transfer_message": "I'm transferring you to the 988 Suicide Hotline for immediate support."
+      },
+      {
+        "condition": "caller explicitly asks for a human",
+        "destination_number": null,
+        "transfer_message": "Please hold while I connect you to a team member."
+      }
+    ],
+    "guardrails": [
+      "medical advice or diagnosis"
+    ]
+  },
+  {
+    "test": "9. FINANCIAL SERVICES",
+    "status": "PASS",
+    "elapsed_seconds": 7.57,
+    "agent_name": "FinAdvisor Genie",
+    "tone": "professional",
+    "greeting": "Hello, and thank you for calling our financial advisory firm. How may I assist y...",
+    "has_role_description": true,
+    "role_description_length": 855,
+    "has_business_context": true,
+    "handoff_rules_count": 2,
+    "guardrails_count": 3,
+    "missing_info_count": 3,
+    "missing_info": [
+      "Company/business name",
+      "Target audience or typical callers",
+      "Business hours / timezone"
+    ],
+    "handoff_rules": [
+      {
+        "condition": "caller has an account over $500K",
+        "destination_number": "212-555-9999",
+        "transfer_message": "Let me transfer you to one of our expert advisors for further assistance."
+      },
+      {
+        "condition": "caller explicitly asks for a human",
+        "destination_number": "212-555-9999",
+        "transfer_message": "I will connect you with one of our advisors right away."
+      }
+    ],
+    "guardrails": [
+      "specific investment advice",
+      "guaranteeing investment returns",
+      "medical/legal/financial advice"
+    ]
+  },
+  {
+    "test": "10. EXTREMELY LONG AND DETAILED PROMPT",
+    "status": "PASS",
+    "elapsed_seconds": 7.56,
+    "agent_name": "SpeedFix Auto Assistant",
+    "tone": "professional",
+    "greeting": "Hello! Thank you for calling SpeedFix Auto. How may I assist you today?",
+    "has_role_description": true,
+    "role_description_length": 1449,
+    "has_business_context": true,
+    "handoff_rules_count": 3,
+    "guardrails_count": 3,
+    "missing_info_count": 1,
+    "missing_info": [
+      "Target audience or typical callers"
+    ],
+    "handoff_rules": [
+      {
+        "condition": "caller asks for manager",
+        "destination_number": null,
+        "transfer_message": "Let me transfer you to the location manager who can assist you further."
+      },
+      {
+        "condition": "caller threatens legal action",
+        "destination_number": "800-555-9999",
+        "transfer_message": "I will connect you to our corporate office for further assistance."
+      },
+      {
+        "condition": "caller explicitly asks for a human",
+        "destination_number": null,
+        "transfer_message": "I am transferring you to a human representative who can assist you further."
+      }
+    ],
+    "guardrails": [
+      "competitor pricing",
+      "admitting fault for previous repairs",
+      "medical/legal/financial advice"
+    ]
+  }
+]

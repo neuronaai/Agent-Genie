@@ -1,0 +1,55 @@
+{% extends "layouts/dashboard.html" %}
+{% block page_title %}Agents{% endblock %}
+{% block header_actions %}
+<a href="{{ url_for('dashboard.agents_new') }}" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-brand-700 text-white text-sm font-bold hover:from-brand-700 hover:to-brand-800 transition shadow-lg shadow-brand-600/25 flex items-center gap-2">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+    New Agent
+</a>
+{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    {% if agents %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% for agent in agents %}
+        <a href="{{ url_for('dashboard.agent_detail', agent_id=agent.id) }}" class="bg-white rounded-2xl border border-surface-200 p-5 shadow-xs hover:shadow-premium-md hover:border-brand-200 transition group">
+            <div class="flex items-start gap-4">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-500 to-indigo-600 flex items-center justify-center shadow-md shadow-brand-500/20 group-hover:shadow-lg group-hover:shadow-brand-500/30 transition shrink-0">
+                    <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between mb-1">
+                        <p class="text-sm font-bold text-surface-900 group-hover:text-brand-600 transition truncate">{{ agent.name }}</p>
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold shrink-0 ml-2
+                            {% if agent.status == 'active' %}bg-emerald-50 text-emerald-700 border border-emerald-200
+                            {% elif agent.status == 'draft' %}bg-surface-100 text-surface-600 border border-surface-200
+                            {% elif agent.status == 'pending' %}bg-amber-50 text-amber-700 border border-amber-200
+                            {% elif agent.status == 'failed' %}bg-red-50 text-red-700 border border-red-200
+                            {% else %}bg-orange-50 text-orange-700 border border-orange-200{% endif %}">
+                            {% if agent.status == 'active' %}<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>{% endif %}
+                            {{ agent.status|capitalize }}
+                        </span>
+                    </div>
+                    <p class="text-xs text-surface-400">Created {{ agent.created_at.strftime('%b %d, %Y') if agent.created_at else 'N/A' }}</p>
+                    {% if agent.retell_agent_id %}
+                    <p class="text-[10px] text-surface-300 font-mono mt-1 truncate">{{ agent.retell_agent_id }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-2xl border border-surface-200 shadow-xs px-6 py-20 text-center">
+        <div class="w-20 h-20 rounded-3xl bg-gradient-to-br from-brand-100 to-indigo-100 flex items-center justify-center mx-auto mb-5">
+            <svg class="w-10 h-10 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+        </div>
+        <h3 class="text-xl font-extrabold text-surface-900 mb-2">No agents yet</h3>
+        <p class="text-sm text-surface-500 mb-6 max-w-md mx-auto">Describe your business in plain English and our AI will create a fully configured voice agent for you in under 5 minutes.</p>
+        <a href="{{ url_for('dashboard.agents_new') }}" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-brand-600 to-brand-700 text-white text-sm font-bold hover:from-brand-700 hover:to-brand-800 transition shadow-lg shadow-brand-600/25">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Create Your First Agent
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

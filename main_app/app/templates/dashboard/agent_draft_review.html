@@ -1,0 +1,436 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block page_title %}Review Agent Configuration{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('dashboard.agents_list') }}" class="px-4 py-2 rounded-xl border border-surface-200 text-sm font-medium text-surface-600 hover:bg-surface-50 transition flex items-center gap-2">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+    Back to Agents
+</a>
+{% endblock %}
+
+{% block content %}
+{% set config = draft.generated_config %}
+{% if config is string %}
+{% set config = config | tojson | from_json %}
+{% endif %}
+
+{# Normalise keys — the Brain microservice may return either old or new field names #}
+{% set handoff_rules = config.handoff_rules or config.human_handoff_conditions or config.transfer_rules or [] if config is mapping else [] %}
+{% set guardrails = config.guardrails or config.prohibited_topics or [] if config is mapping else [] %}
+{% set services = config.services or [] if config is mapping else [] %}
+{% set faqs = config.faqs or [] if config is mapping else [] %}
+
+<form method="POST" action="{{ url_for('dashboard.agent_draft_save_edits', draft_id=draft.id) }}" id="draftEditForm">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+<div class="max-w-5xl mx-auto space-y-6">
+
+    <!-- Draft Status Header -->
+    <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-5 bg-gradient-to-r from-surface-50 to-white border-b border-surface-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-extrabold text-surface-900">{{ config.agent_name if config is mapping else 'Agent Configuration' }}</h2>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold
+                            {% if draft.status == 'pending_review' %}bg-amber-100 text-amber-700
+                            {% elif draft.status == 'approved' %}bg-emerald-100 text-emerald-700
+                            {% elif draft.status == 'rejected' %}bg-red-100 text-red-700
+                            {% else %}bg-surface-100 text-surface-600{% endif %}">
+                            {{ draft.status|replace('_', ' ')|title }}
+                        </span>
+                        {% if config is mapping and (config.detected_industry or config.business_type) %}
+                        <span class="text-xs text-surface-400">{{ (config.detected_industry or config.business_type)|replace('_', ' ')|title }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if draft.status == 'pending_review' %}
+                <div class="flex items-center gap-2">
+                    <button type="submit" name="action" value="save" class="px-4 py-2.5 rounded-xl border border-surface-200 text-surface-700 text-sm font-bold hover:bg-surface-50 transition">Save Edits</button>
+                    <button type="submit" name="action" value="approve" class="px-5 py-2.5 rounded-xl gradient-brand text-white text-sm font-bold shadow-premium hover:shadow-premium-md transition">Approve &amp; Deploy</button>
+                    <a href="{{ url_for('dashboard.agent_draft_reject', draft_id=draft.id) }}"
+                       onclick="event.preventDefault(); if(confirm('Reject this draft?')) { var f=document.createElement('form'); f.method='POST'; f.action=this.href; var t=document.createElement('input'); t.type='hidden'; t.name='csrf_token'; t.value='{{ csrf_token() }}'; f.appendChild(t); document.body.appendChild(f); f.submit(); }"
+                       class="px-4 py-2.5 rounded-xl border border-red-200 text-red-600 text-sm font-bold hover:bg-red-50 transition">Reject</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Contradiction Warnings -->
+    {% if config is mapping and config.contradictions and config.contradictions|length > 0 %}
+    <div class="bg-amber-50 border border-amber-200 rounded-2xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-amber-200 bg-amber-100/50">
+            <h3 class="text-base font-extrabold text-amber-900 flex items-center gap-2">
+                <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+                Contradictions Detected ({{ config.contradictions|length }})
+            </h3>
+        </div>
+        <div class="divide-y divide-amber-200/50">
+            {% for c in config.contradictions %}
+            <div class="px-6 py-4">
+                {% if c is mapping %}
+                <p class="text-sm font-bold text-amber-900">{{ c.description }}</p>
+                <p class="text-xs text-amber-700 mt-1"><strong>Resolution:</strong> {{ c.resolution_applied }}</p>
+                {% else %}
+                <p class="text-sm text-amber-900">{{ c }}</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Missing Information -->
+    {% if config is mapping and config.missing_information and config.missing_information|length > 0 %}
+    <div class="bg-blue-50 border border-blue-200 rounded-2xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-blue-200 bg-blue-100/50">
+            <h3 class="text-base font-extrabold text-blue-900 flex items-center gap-2">
+                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Missing Information ({{ config.missing_information|length }})
+            </h3>
+            <p class="text-sm text-blue-700 mt-1">Provide answers below to improve the agent configuration.</p>
+        </div>
+        <div class="divide-y divide-blue-200/50">
+            {% for question in config.missing_information %}
+            <div class="px-6 py-4">
+                <label class="block text-sm font-bold text-blue-900 mb-2">{{ question }}</label>
+                <input type="text" name="missing_answer_{{ loop.index0 }}" placeholder="Your answer..." class="w-full px-4 py-2.5 rounded-xl border border-blue-200 text-surface-800 text-sm bg-white focus:ring-2 focus:ring-blue-400 focus:border-blue-400">
+                <input type="hidden" name="missing_question_{{ loop.index0 }}" value="{{ question }}">
+            </div>
+            {% endfor %}
+        </div>
+        <input type="hidden" name="missing_count" value="{{ config.missing_information|length }}">
+    </div>
+    {% endif %}
+
+    {% if config is mapping %}
+
+    <!-- ================================================================ -->
+    <!-- Section 1: Business Overview -->
+    <!-- ================================================================ -->
+    <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-surface-200 bg-gradient-to-r from-surface-50 to-white">
+            <h3 class="text-base font-extrabold text-surface-900">Business Overview</h3>
+        </div>
+        <div class="p-6 space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs text-surface-500 font-bold uppercase tracking-wider mb-1">Agent Name</label>
+                    <input type="text" name="agent_name" value="{{ config.agent_name or '' }}" class="w-full px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="block text-xs text-surface-500 font-bold uppercase tracking-wider mb-1">Business Type</label>
+                    <input type="text" name="business_type" value="{{ config.business_type or config.detected_industry or '' }}" class="w-full px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm focus:ring-2 focus:ring-brand-500">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs text-surface-500 font-bold uppercase tracking-wider mb-1">Business Context</label>
+                <textarea name="business_context" rows="3" class="w-full px-4 py-3 rounded-xl border border-surface-200 text-surface-800 text-sm leading-relaxed focus:ring-2 focus:ring-brand-500">{{ config.business_context or '' }}</textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- Section 2: Agent Role & Tone -->
+    <!-- ================================================================ -->
+    <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-surface-200 bg-gradient-to-r from-surface-50 to-white">
+            <h3 class="text-base font-extrabold text-surface-900">Agent Role &amp; Tone</h3>
+        </div>
+        <div class="p-6 space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs text-surface-500 font-bold uppercase tracking-wider mb-1">Tone</label>
+                    <select name="tone" class="w-full px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm focus:ring-2 focus:ring-brand-500">
+                        {% for t in ['professional', 'friendly', 'empathetic', 'energetic', 'casual', 'formal', 'helpful and professional'] %}
+                        <option value="{{ t }}" {% if (config.tone or 'professional') == t %}selected{% endif %}>{{ t|title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs text-surface-500 font-bold uppercase tracking-wider mb-1">Agent Role</label>
+                <p class="text-xs text-surface-400 mb-1">This is the single canonical role field. The full Retell prompt is compiled from this plus the structured sections below.</p>
+                <textarea name="agent_role" rows="5" class="w-full px-4 py-3 rounded-xl border border-surface-200 text-surface-800 text-sm leading-relaxed focus:ring-2 focus:ring-brand-500">{{ config.agent_role or '' }}</textarea>
+            </div>
+            <div>
+                <label class="block text-xs text-surface-500 font-bold uppercase tracking-wider mb-1">Greeting Message</label>
+                <textarea name="greeting_message" rows="2" class="w-full px-4 py-3 rounded-xl border border-surface-200 text-surface-800 text-sm leading-relaxed focus:ring-2 focus:ring-brand-500">{{ config.greeting_message or '' }}</textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- Section 3: Services -->
+    <!-- ================================================================ -->
+    <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-surface-200 bg-gradient-to-r from-surface-50 to-white">
+            <h3 class="text-base font-extrabold text-surface-900">Services</h3>
+        </div>
+        <div class="p-6" id="services-section">
+            {% for svc in services %}
+            <div class="flex items-start gap-3 mb-3 service-row">
+                <input type="text" name="service_name[]" value="{{ svc.name if svc is mapping else svc }}" placeholder="Service name" class="flex-1 px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm">
+                <input type="text" name="service_desc[]" value="{{ svc.description if svc is mapping else '' }}" placeholder="Description (optional)" class="flex-1 px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm">
+                <button type="button" onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-600 mt-2.5"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+            </div>
+            {% endfor %}
+            <button type="button" onclick="addServiceRow()" class="text-sm text-brand-600 font-bold hover:text-brand-700 mt-2">+ Add Service</button>
+        </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- Section 4: FAQs -->
+    <!-- ================================================================ -->
+    <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-surface-200 bg-gradient-to-r from-surface-50 to-white">
+            <h3 class="text-base font-extrabold text-surface-900">FAQs</h3>
+        </div>
+        <div class="p-6" id="faqs-section">
+            {% for faq in faqs %}
+            <div class="mb-4 p-4 bg-surface-50 rounded-xl border border-surface-100 faq-row">
+                <div class="flex items-start gap-2 mb-2">
+                    <input type="text" name="faq_question[]" value="{{ faq.question if faq is mapping else faq }}" placeholder="Question" class="flex-1 px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm">
+                    <button type="button" onclick="this.closest('.faq-row').remove()" class="text-red-400 hover:text-red-600 mt-2.5"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                </div>
+                <textarea name="faq_answer[]" rows="2" placeholder="Answer" class="w-full px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm">{{ faq.answer if faq is mapping else '' }}</textarea>
+            </div>
+            {% endfor %}
+            <button type="button" onclick="addFaqRow()" class="text-sm text-brand-600 font-bold hover:text-brand-700 mt-2">+ Add FAQ</button>
+        </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- Section 5: Offers / Promotions -->
+    <!-- ================================================================ -->
+    <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-surface-200 bg-gradient-to-r from-surface-50 to-white">
+            <h3 class="text-base font-extrabold text-surface-900">Offers &amp; Promotions</h3>
+        </div>
+        <div class="p-6" id="offers-section">
+            {% for offer in (config.specials_offers or []) %}
+            <div class="flex items-center gap-3 mb-3 offer-row">
+                <input type="text" name="specials_offers[]" value="{{ offer }}" placeholder="Offer or promotion" class="flex-1 px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm">
+                <button type="button" onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-600"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+            </div>
+            {% endfor %}
+            <button type="button" onclick="addOfferRow()" class="text-sm text-brand-600 font-bold hover:text-brand-700 mt-2">+ Add Offer</button>
+        </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- Section 6: Hours & Location -->
+    <!-- ================================================================ -->
+    <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-surface-200 bg-gradient-to-r from-surface-50 to-white">
+            <h3 class="text-base font-extrabold text-surface-900">Hours &amp; Location</h3>
+        </div>
+        <div class="p-6 space-y-4">
+            {% set hours = config.hours_of_operation or {} %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs text-surface-500 font-bold uppercase tracking-wider mb-1">Timezone</label>
+                    <input type="text" name="hours_timezone" value="{{ hours.timezone if hours is mapping else 'UTC' }}" class="w-full px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs text-surface-500 font-bold uppercase tracking-wider mb-1">Schedule (summary)</label>
+                    <input type="text" name="hours_schedule" value="{{ hours.schedule|tojson if hours is mapping and hours.schedule else '' }}" placeholder='e.g. Mon-Fri 9am-5pm' class="w-full px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- Section 7: Handoff Rules -->
+    <!-- ================================================================ -->
+    <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-surface-200 bg-gradient-to-r from-surface-50 to-white">
+            <h3 class="text-base font-extrabold text-surface-900">Handoff Rules ({{ handoff_rules|length }})</h3>
+        </div>
+        <div class="p-6" id="handoff-section">
+            {% for rule in handoff_rules %}
+            <div class="mb-4 p-4 bg-surface-50 rounded-xl border border-surface-100 handoff-row">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <input type="text" name="handoff_condition[]" value="{{ rule.condition if rule is mapping else rule }}" placeholder="Condition" class="px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm">
+                    <input type="text" name="handoff_number[]" value="{{ rule.destination_number if rule is mapping else '' }}" placeholder="Destination number" class="px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm">
+                    <div class="flex items-center gap-2">
+                        <input type="text" name="handoff_message[]" value="{{ rule.transfer_message if rule is mapping else '' }}" placeholder="Transfer message" class="flex-1 px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm">
+                        <button type="button" onclick="this.closest('.handoff-row').remove()" class="text-red-400 hover:text-red-600"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            <button type="button" onclick="addHandoffRow()" class="text-sm text-brand-600 font-bold hover:text-brand-700 mt-2">+ Add Handoff Rule</button>
+        </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- Section 8: Guardrails -->
+    <!-- ================================================================ -->
+    <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-surface-200 bg-gradient-to-r from-surface-50 to-white">
+            <h3 class="text-base font-extrabold text-surface-900">Guardrails ({{ guardrails|length }})</h3>
+        </div>
+        <div class="p-6" id="guardrails-section">
+            {% for guard in guardrails %}
+            <div class="mb-3 flex items-start gap-3 guardrail-row">
+                <input type="text" name="guardrail_topic[]" value="{{ guard.prohibited_topic if guard is mapping else guard }}" placeholder="Prohibited topic" class="flex-1 px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm">
+                <input type="text" name="guardrail_message[]" value="{{ guard.fallback_message if guard is mapping else 'I cannot discuss that topic.' }}" placeholder="Fallback message" class="flex-1 px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm">
+                <button type="button" onclick="this.closest('.guardrail-row').remove()" class="text-red-400 hover:text-red-600 mt-2.5"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+            </div>
+            {% endfor %}
+            <button type="button" onclick="addGuardrailRow()" class="text-sm text-brand-600 font-bold hover:text-brand-700 mt-2">+ Add Guardrail</button>
+        </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- Section 9: Booking & Support Behavior -->
+    <!-- ================================================================ -->
+    <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-surface-200 bg-gradient-to-r from-surface-50 to-white">
+            <h3 class="text-base font-extrabold text-surface-900">Booking &amp; Support Behavior</h3>
+        </div>
+        <div class="p-6 space-y-4">
+            <div>
+                <label class="block text-xs text-surface-500 font-bold uppercase tracking-wider mb-1">Booking Behavior</label>
+                <textarea name="booking_behavior" rows="2" class="w-full px-4 py-3 rounded-xl border border-surface-200 text-surface-800 text-sm leading-relaxed focus:ring-2 focus:ring-brand-500">{{ config.booking_behavior or '' }}</textarea>
+            </div>
+            <div>
+                <label class="block text-xs text-surface-500 font-bold uppercase tracking-wider mb-1">Support Flow</label>
+                <textarea name="support_flow" rows="2" class="w-full px-4 py-3 rounded-xl border border-surface-200 text-surface-800 text-sm leading-relaxed focus:ring-2 focus:ring-brand-500">{{ config.support_flow or '' }}</textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- Section 10: Escalation & Fallback -->
+    <!-- ================================================================ -->
+    <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-surface-200 bg-gradient-to-r from-surface-50 to-white">
+            <h3 class="text-base font-extrabold text-surface-900">Escalation &amp; Fallback</h3>
+        </div>
+        <div class="p-6 space-y-4">
+            <div>
+                <label class="block text-xs text-surface-500 font-bold uppercase tracking-wider mb-1">Fallback Behavior</label>
+                <textarea name="fallback_behavior" rows="2" class="w-full px-4 py-3 rounded-xl border border-surface-200 text-surface-800 text-sm leading-relaxed focus:ring-2 focus:ring-brand-500">{{ config.fallback_behavior or '' }}</textarea>
+            </div>
+            <div>
+                <label class="block text-xs text-surface-500 font-bold uppercase tracking-wider mb-1">Unsupported Request Behavior</label>
+                <textarea name="unsupported_request_behavior" rows="2" class="w-full px-4 py-3 rounded-xl border border-surface-200 text-surface-800 text-sm leading-relaxed focus:ring-2 focus:ring-brand-500">{{ config.unsupported_request_behavior or '' }}</textarea>
+            </div>
+            <div>
+                <label class="block text-xs text-surface-500 font-bold uppercase tracking-wider mb-1">Escalation Rules (one per line)</label>
+                <textarea name="escalation_rules" rows="3" class="w-full px-4 py-3 rounded-xl border border-surface-200 text-surface-800 text-sm leading-relaxed focus:ring-2 focus:ring-brand-500">{{ (config.escalation_rules or [])|join('\n') }}</textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- Section 11: Knowledge Categories -->
+    <!-- ================================================================ -->
+    <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-surface-200 bg-gradient-to-r from-surface-50 to-white">
+            <h3 class="text-base font-extrabold text-surface-900">Knowledge Categories</h3>
+            <p class="text-xs text-surface-500 mt-1">Categories of knowledge the agent should be equipped with. One per line.</p>
+        </div>
+        <div class="p-6">
+            <textarea name="knowledge_categories" rows="4" class="w-full px-4 py-3 rounded-xl border border-surface-200 text-surface-800 text-sm leading-relaxed focus:ring-2 focus:ring-brand-500" placeholder="e.g. business hours&#10;services&#10;pricing&#10;policies">{{ (config.knowledge_categories or [])|join('\n') }}</textarea>
+        </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- Section 12: Routing Rules -->
+    <!-- ================================================================ -->
+    <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-surface-200 bg-gradient-to-r from-surface-50 to-white">
+            <h3 class="text-base font-extrabold text-surface-900">Routing Rules</h3>
+            <p class="text-xs text-surface-500 mt-1">Call routing rules that determine how calls are directed. One per line.</p>
+        </div>
+        <div class="p-6">
+            <textarea name="routing_rules" rows="4" class="w-full px-4 py-3 rounded-xl border border-surface-200 text-surface-800 text-sm leading-relaxed focus:ring-2 focus:ring-brand-500" placeholder="e.g. Route billing inquiries to billing department&#10;Route technical issues to support team">{{ (config.routing_rules or [])|join('\n') }}</textarea>
+        </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- Regenerate Section -->
+    <!-- ================================================================ -->
+    {% if draft.status == 'pending_review' %}
+    <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-surface-200 bg-gradient-to-r from-surface-50 to-white">
+            <h3 class="text-base font-extrabold text-surface-900 flex items-center gap-2">
+                <svg class="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                Regenerate from Scratch
+            </h3>
+            <p class="text-sm text-surface-500 mt-1">Edit your original description and regenerate the entire configuration.</p>
+        </div>
+        <div class="p-6">
+            <textarea name="regenerate_prompt" rows="4" class="w-full px-4 py-3 rounded-xl border border-surface-200 text-surface-800 text-sm leading-relaxed focus:ring-2 focus:ring-brand-500" placeholder="Edit your description...">{{ draft.raw_prompt }}</textarea>
+            <div class="mt-4 flex justify-end">
+                <button type="submit" name="action" value="regenerate" class="px-5 py-2.5 rounded-xl bg-surface-800 text-white text-sm font-bold hover:bg-surface-900 transition flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    Regenerate
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Original Prompt -->
+    <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-surface-200 bg-gradient-to-r from-surface-50 to-white">
+            <h3 class="text-base font-extrabold text-surface-900">Original Prompt</h3>
+        </div>
+        <div class="p-6">
+            <p class="text-sm text-surface-700 leading-relaxed whitespace-pre-line">{{ draft.raw_prompt }}</p>
+        </div>
+    </div>
+
+    {% endif %}
+</div>
+</form>
+
+<script>
+function addServiceRow() {
+    const sec = document.getElementById('services-section');
+    const btn = sec.querySelector('button[onclick="addServiceRow()"]');
+    const row = document.createElement('div');
+    row.className = 'flex items-start gap-3 mb-3 service-row';
+    row.innerHTML = '<input type="text" name="service_name[]" placeholder="Service name" class="flex-1 px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm"><input type="text" name="service_desc[]" placeholder="Description (optional)" class="flex-1 px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm"><button type="button" onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-600 mt-2.5"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>';
+    sec.insertBefore(row, btn);
+}
+function addFaqRow() {
+    const sec = document.getElementById('faqs-section');
+    const btn = sec.querySelector('button[onclick="addFaqRow()"]');
+    const row = document.createElement('div');
+    row.className = 'mb-4 p-4 bg-surface-50 rounded-xl border border-surface-100 faq-row';
+    row.innerHTML = '<div class="flex items-start gap-2 mb-2"><input type="text" name="faq_question[]" placeholder="Question" class="flex-1 px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm"><button type="button" onclick="this.closest(\'.faq-row\').remove()" class="text-red-400 hover:text-red-600 mt-2.5"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button></div><textarea name="faq_answer[]" rows="2" placeholder="Answer" class="w-full px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm"></textarea>';
+    sec.insertBefore(row, btn);
+}
+function addOfferRow() {
+    const sec = document.getElementById('offers-section');
+    const btn = sec.querySelector('button[onclick="addOfferRow()"]');
+    const row = document.createElement('div');
+    row.className = 'flex items-center gap-3 mb-3 offer-row';
+    row.innerHTML = '<input type="text" name="specials_offers[]" placeholder="Offer or promotion" class="flex-1 px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm"><button type="button" onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-600"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>';
+    sec.insertBefore(row, btn);
+}
+function addHandoffRow() {
+    const sec = document.getElementById('handoff-section');
+    const btn = sec.querySelector('button[onclick="addHandoffRow()"]');
+    const row = document.createElement('div');
+    row.className = 'mb-4 p-4 bg-surface-50 rounded-xl border border-surface-100 handoff-row';
+    row.innerHTML = '<div class="grid grid-cols-1 md:grid-cols-3 gap-3"><input type="text" name="handoff_condition[]" placeholder="Condition" class="px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm"><input type="text" name="handoff_number[]" placeholder="Destination number" class="px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm"><div class="flex items-center gap-2"><input type="text" name="handoff_message[]" placeholder="Transfer message" class="flex-1 px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm"><button type="button" onclick="this.closest(\'.handoff-row\').remove()" class="text-red-400 hover:text-red-600"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button></div></div>';
+    sec.insertBefore(row, btn);
+}
+function addGuardrailRow() {
+    const sec = document.getElementById('guardrails-section');
+    const btn = sec.querySelector('button[onclick="addGuardrailRow()"]');
+    const row = document.createElement('div');
+    row.className = 'mb-3 flex items-start gap-3 guardrail-row';
+    row.innerHTML = '<input type="text" name="guardrail_topic[]" placeholder="Prohibited topic" class="flex-1 px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm"><input type="text" name="guardrail_message[]" placeholder="Fallback message" class="flex-1 px-4 py-2.5 rounded-xl border border-surface-200 text-surface-800 text-sm"><button type="button" onclick="this.closest(\'.guardrail-row\').remove()" class="text-red-400 hover:text-red-600 mt-2.5"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>';
+    sec.insertBefore(row, btn);
+}
+</script>
+{% endblock %}

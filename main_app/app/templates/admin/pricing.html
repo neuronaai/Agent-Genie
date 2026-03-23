@@ -1,0 +1,205 @@
+{% extends "layouts/admin.html" %}
+{% block page_title %}Pricing & Plans{% endblock %}
+{% block content %}
+<div class="max-w-6xl space-y-8">
+
+    <!-- Plans Section -->
+    <div>
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-bold text-surface-900">Plan Definitions</h2>
+            <button onclick="document.getElementById('create-plan-modal').classList.remove('hidden')" class="px-4 py-2 text-sm font-semibold text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition">Create Plan</button>
+        </div>
+        <div class="bg-white rounded-xl border border-surface-200 overflow-hidden">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-surface-200">
+                        <th class="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-surface-400">Plan</th>
+                        <th class="px-5 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-surface-400">Price/mo</th>
+                        <th class="px-5 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-surface-400">Minutes</th>
+                        <th class="px-5 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-surface-400">Agents</th>
+                        <th class="px-5 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-surface-400">Numbers</th>
+                        <th class="px-5 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-surface-400">Overage/min</th>
+                        <th class="px-5 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-surface-400">Extra #/mo</th>
+                        <th class="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-surface-400">Stripe Price</th>
+                        <th class="px-5 py-3 text-center text-[10px] font-semibold uppercase tracking-wider text-surface-400">Active</th>
+                        <th class="px-5 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-surface-400">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-surface-100">
+                    {% for plan in plans %}
+                    <tr class="hover:bg-surface-50 transition" id="plan-row-{{ plan.id }}">
+                        <td class="px-5 py-4 text-sm font-semibold text-surface-900">{{ plan.name }}</td>
+                        <td class="px-5 py-4 text-sm text-surface-700 text-right">${{ (plan.price_monthly_cents / 100)|int }}</td>
+                        <td class="px-5 py-4 text-sm text-surface-700 text-right">{{ plan.included_minutes }}</td>
+                        <td class="px-5 py-4 text-sm text-surface-700 text-right">{{ plan.included_agents }}</td>
+                        <td class="px-5 py-4 text-sm text-surface-700 text-right">{{ plan.included_numbers }}</td>
+                        <td class="px-5 py-4 text-sm text-surface-700 text-right">${{ '%.2f'|format(plan.overage_rate_cents / 100) }}</td>
+                        <td class="px-5 py-4 text-sm text-surface-700 text-right">${{ '%.2f'|format(plan.additional_number_rate_cents / 100) }}</td>
+                        <td class="px-5 py-4 text-xs text-surface-500 font-mono">{{ plan.stripe_price_id or '—' }}</td>
+                        <td class="px-5 py-4 text-center"><span class="w-2.5 h-2.5 rounded-full inline-block {% if plan.is_active %}bg-emerald-500{% else %}bg-surface-300{% endif %}"></span></td>
+                        <td class="px-5 py-4 text-right">
+                            <button onclick="editPlan('{{ plan.id }}', '{{ plan.name }}', {{ plan.price_monthly_cents }}, {{ plan.included_minutes }}, {{ plan.included_agents }}, {{ plan.included_numbers }}, {{ plan.overage_rate_cents }}, {{ plan.additional_number_rate_cents }}, '{{ plan.stripe_price_id or '' }}', {{ 'true' if plan.is_active else 'false' }})" class="text-xs font-medium text-brand-600 hover:text-brand-700">Edit</button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="10" class="px-5 py-12 text-center text-sm text-surface-500">No plans defined.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Top-Up Packs Section -->
+    <div>
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-bold text-surface-900">Top-Up Packs</h2>
+            <button onclick="document.getElementById('create-topup-modal').classList.remove('hidden')" class="px-4 py-2 text-sm font-semibold text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition">Create Pack</button>
+        </div>
+        <div class="bg-white rounded-xl border border-surface-200 overflow-hidden">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-surface-200">
+                        <th class="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-surface-400">Label</th>
+                        <th class="px-5 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-surface-400">Minutes</th>
+                        <th class="px-5 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-surface-400">Price</th>
+                        <th class="px-5 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-surface-400">Per Minute</th>
+                        <th class="px-5 py-3 text-center text-[10px] font-semibold uppercase tracking-wider text-surface-400">Active</th>
+                        <th class="px-5 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-surface-400">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-surface-100">
+                    {% for pack in topup_packs %}
+                    <tr class="hover:bg-surface-50 transition">
+                        <td class="px-5 py-4 text-sm font-semibold text-surface-900">{{ pack.label }}</td>
+                        <td class="px-5 py-4 text-sm text-surface-700 text-right">{{ pack.minutes }}</td>
+                        <td class="px-5 py-4 text-sm text-surface-700 text-right">${{ '%.2f'|format(pack.price_cents / 100) }}</td>
+                        <td class="px-5 py-4 text-sm text-surface-700 text-right">${{ '%.2f'|format(pack.price_cents / pack.minutes / 100) if pack.minutes > 0 else '—' }}</td>
+                        <td class="px-5 py-4 text-center"><span class="w-2.5 h-2.5 rounded-full inline-block {% if pack.is_active %}bg-emerald-500{% else %}bg-surface-300{% endif %}"></span></td>
+                        <td class="px-5 py-4 text-right">
+                            <button onclick="editTopup('{{ pack.id }}', '{{ pack.label }}', {{ pack.minutes }}, {{ pack.price_cents }}, {{ 'true' if pack.is_active else 'false' }})" class="text-xs font-medium text-brand-600 hover:text-brand-700">Edit</button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="px-5 py-12 text-center text-sm text-surface-500">No top-up packs defined.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Create Plan Modal -->
+<div id="create-plan-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
+        <h3 class="text-lg font-bold text-surface-900 mb-4">Create Plan</h3>
+        <form action="{{ url_for('admin.plan_create') }}" method="POST" class="space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="grid grid-cols-2 gap-4">
+                <div class="col-span-2"><label class="block text-xs font-semibold text-surface-600 mb-1">Plan Name</label><input name="name" required class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></div>
+                <div><label class="block text-xs font-semibold text-surface-600 mb-1">Price (cents/mo)</label><input name="price_monthly_cents" type="number" required class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></div>
+                <div><label class="block text-xs font-semibold text-surface-600 mb-1">Included Minutes</label><input name="included_minutes" type="number" required class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></div>
+                <div><label class="block text-xs font-semibold text-surface-600 mb-1">Included Agents</label><input name="included_agents" type="number" value="1" class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></div>
+                <div><label class="block text-xs font-semibold text-surface-600 mb-1">Included Numbers</label><input name="included_numbers" type="number" value="1" class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></div>
+                <div><label class="block text-xs font-semibold text-surface-600 mb-1">Overage Rate (cents/min)</label><input name="overage_rate_cents" type="number" value="10" class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></div>
+                <div><label class="block text-xs font-semibold text-surface-600 mb-1">Extra Number Rate (cents/mo)</label><input name="additional_number_rate_cents" type="number" value="500" class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></div>
+                <div class="col-span-2"><label class="block text-xs font-semibold text-surface-600 mb-1">Stripe Price ID (optional)</label><input name="stripe_price_id" class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" placeholder="price_..."></div>
+                <div class="col-span-2"><label class="flex items-center gap-2 text-sm"><input type="checkbox" name="is_active" value="1" checked class="rounded border-surface-300 text-brand-600 focus:ring-brand-500"> Active</label></div>
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+                <button type="button" onclick="this.closest('.fixed').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-surface-600 bg-surface-100 rounded-lg hover:bg-surface-200 transition">Cancel</button>
+                <button type="submit" class="px-4 py-2 text-sm font-semibold text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition">Create</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Plan Modal -->
+<div id="edit-plan-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
+        <h3 class="text-lg font-bold text-surface-900 mb-4">Edit Plan</h3>
+        <form id="edit-plan-form" method="POST" class="space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="grid grid-cols-2 gap-4">
+                <div class="col-span-2"><label class="block text-xs font-semibold text-surface-600 mb-1">Plan Name</label><input id="ep-name" name="name" required class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></div>
+                <div><label class="block text-xs font-semibold text-surface-600 mb-1">Price (cents/mo)</label><input id="ep-price" name="price_monthly_cents" type="number" required class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></div>
+                <div><label class="block text-xs font-semibold text-surface-600 mb-1">Included Minutes</label><input id="ep-minutes" name="included_minutes" type="number" required class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></div>
+                <div><label class="block text-xs font-semibold text-surface-600 mb-1">Included Agents</label><input id="ep-agents" name="included_agents" type="number" class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></div>
+                <div><label class="block text-xs font-semibold text-surface-600 mb-1">Included Numbers</label><input id="ep-numbers" name="included_numbers" type="number" class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></div>
+                <div><label class="block text-xs font-semibold text-surface-600 mb-1">Overage Rate (cents/min)</label><input id="ep-overage" name="overage_rate_cents" type="number" class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></div>
+                <div><label class="block text-xs font-semibold text-surface-600 mb-1">Extra Number Rate (cents/mo)</label><input id="ep-extra-num" name="additional_number_rate_cents" type="number" class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></div>
+                <div class="col-span-2"><label class="block text-xs font-semibold text-surface-600 mb-1">Stripe Price ID</label><input id="ep-stripe" name="stripe_price_id" class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" placeholder="price_..."></div>
+                <div class="col-span-2"><label class="flex items-center gap-2 text-sm"><input id="ep-active" type="checkbox" name="is_active" value="1" class="rounded border-surface-300 text-brand-600 focus:ring-brand-500"> Active</label></div>
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+                <button type="button" onclick="this.closest('.fixed').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-surface-600 bg-surface-100 rounded-lg hover:bg-surface-200 transition">Cancel</button>
+                <button type="submit" class="px-4 py-2 text-sm font-semibold text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Create Top-Up Modal -->
+<div id="create-topup-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+        <h3 class="text-lg font-bold text-surface-900 mb-4">Create Top-Up Pack</h3>
+        <form action="{{ url_for('admin.topup_create') }}" method="POST" class="space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div><label class="block text-xs font-semibold text-surface-600 mb-1">Label</label><input name="label" required class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" placeholder="100 Minute Pack"></div>
+            <div class="grid grid-cols-2 gap-4">
+                <div><label class="block text-xs font-semibold text-surface-600 mb-1">Minutes</label><input name="minutes" type="number" required class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></div>
+                <div><label class="block text-xs font-semibold text-surface-600 mb-1">Price (cents)</label><input name="price_cents" type="number" required class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></div>
+            </div>
+            <div><label class="flex items-center gap-2 text-sm"><input type="checkbox" name="is_active" value="1" checked class="rounded border-surface-300 text-brand-600 focus:ring-brand-500"> Active</label></div>
+            <div class="flex justify-end gap-3 pt-2">
+                <button type="button" onclick="this.closest('.fixed').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-surface-600 bg-surface-100 rounded-lg hover:bg-surface-200 transition">Cancel</button>
+                <button type="submit" class="px-4 py-2 text-sm font-semibold text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition">Create</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Top-Up Modal -->
+<div id="edit-topup-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+        <h3 class="text-lg font-bold text-surface-900 mb-4">Edit Top-Up Pack</h3>
+        <form id="edit-topup-form" method="POST" class="space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div><label class="block text-xs font-semibold text-surface-600 mb-1">Label</label><input id="et-label" name="label" required class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></div>
+            <div class="grid grid-cols-2 gap-4">
+                <div><label class="block text-xs font-semibold text-surface-600 mb-1">Minutes</label><input id="et-minutes" name="minutes" type="number" required class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></div>
+                <div><label class="block text-xs font-semibold text-surface-600 mb-1">Price (cents)</label><input id="et-price" name="price_cents" type="number" required class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></div>
+            </div>
+            <div><label class="flex items-center gap-2 text-sm"><input id="et-active" type="checkbox" name="is_active" value="1" class="rounded border-surface-300 text-brand-600 focus:ring-brand-500"> Active</label></div>
+            <div class="flex justify-end gap-3 pt-2">
+                <button type="button" onclick="this.closest('.fixed').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-surface-600 bg-surface-100 rounded-lg hover:bg-surface-200 transition">Cancel</button>
+                <button type="submit" class="px-4 py-2 text-sm font-semibold text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function editPlan(id, name, price, minutes, agents, numbers, overage, extraNum, stripe, active) {
+    document.getElementById('edit-plan-form').action = '/admin/pricing/plan/' + id + '/edit';
+    document.getElementById('ep-name').value = name;
+    document.getElementById('ep-price').value = price;
+    document.getElementById('ep-minutes').value = minutes;
+    document.getElementById('ep-agents').value = agents;
+    document.getElementById('ep-numbers').value = numbers;
+    document.getElementById('ep-overage').value = overage;
+    document.getElementById('ep-extra-num').value = extraNum;
+    document.getElementById('ep-stripe').value = stripe;
+    document.getElementById('ep-active').checked = active;
+    document.getElementById('edit-plan-modal').classList.remove('hidden');
+}
+
+function editTopup(id, label, minutes, price, active) {
+    document.getElementById('edit-topup-form').action = '/admin/pricing/topup/' + id + '/edit';
+    document.getElementById('et-label').value = label;
+    document.getElementById('et-minutes').value = minutes;
+    document.getElementById('et-price').value = price;
+    document.getElementById('et-active').checked = active;
+    document.getElementById('edit-topup-modal').classList.remove('hidden');
+}
+</script>
+{% endblock %}

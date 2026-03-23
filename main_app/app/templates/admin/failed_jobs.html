@@ -1,0 +1,75 @@
+{% extends "layouts/admin.html" %}
+{% block page_title %}Failed Jobs{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6">
+
+    <!-- Failed Agents -->
+    <div class="bg-white/5 rounded-2xl border border-white/10 overflow-hidden">
+        <div class="px-6 py-4 border-b border-white/10">
+            <h2 class="text-lg font-extrabold text-white">Failed / Needs Attention Agents ({{ failed_agents|length }})</h2>
+        </div>
+        {% if failed_agents %}
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-white/10">
+                        <th class="px-6 py-3 text-left text-xs font-bold text-surface-400 uppercase tracking-wider">Agent</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-surface-400 uppercase tracking-wider">Tenant</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-surface-400 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-surface-400 uppercase tracking-wider">Updated</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    {% for agent in failed_agents %}
+                    <tr>
+                        <td class="px-6 py-3 text-sm text-white font-bold">{{ agent.name }}</td>
+                        <td class="px-6 py-3 text-sm text-surface-300 font-mono text-xs">{{ agent.tenant_id[:12] }}...</td>
+                        <td class="px-6 py-3">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold {% if agent.status == 'failed' %}bg-red-500/20 text-red-400{% else %}bg-amber-500/20 text-amber-400{% endif %}">{{ agent.status }}</span>
+                        </td>
+                        <td class="px-6 py-3 text-xs text-surface-400">{{ agent.updated_at.strftime('%b %d, %Y %H:%M') if agent.updated_at else 'N/A' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-8 text-center text-surface-400 text-sm">No failed agents.</div>
+        {% endif %}
+    </div>
+
+    <!-- Failed Webhooks -->
+    <div class="bg-white/5 rounded-2xl border border-white/10 overflow-hidden">
+        <div class="px-6 py-4 border-b border-white/10">
+            <h2 class="text-lg font-extrabold text-white">Failed Webhooks ({{ failed_webhooks|length }})</h2>
+        </div>
+        {% if failed_webhooks %}
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-white/10">
+                        <th class="px-6 py-3 text-left text-xs font-bold text-surface-400 uppercase tracking-wider">Source</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-surface-400 uppercase tracking-wider">Event Type</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-surface-400 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-surface-400 uppercase tracking-wider">Received</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    {% for wh in failed_webhooks %}
+                    <tr>
+                        <td class="px-6 py-3 text-sm text-white font-bold">{{ wh.source }}</td>
+                        <td class="px-6 py-3 text-sm text-surface-300">{{ wh.event_type }}</td>
+                        <td class="px-6 py-3"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-red-500/20 text-red-400">{{ wh.status }}</span></td>
+                        <td class="px-6 py-3 text-xs text-surface-400">{{ wh.created_at.strftime('%b %d, %Y %H:%M') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-8 text-center text-surface-400 text-sm">No failed webhooks.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

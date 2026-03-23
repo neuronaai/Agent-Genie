@@ -1,0 +1,127 @@
+{% extends "layouts/admin.html" %}
+
+{% block page_title %}DFY Packages{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <p class="text-sm text-surface-500">Manage service packages available in the DFY catalog.</p>
+    </div>
+
+    <!-- Existing Packages -->
+    <div class="space-y-4">
+        {% for pkg in packages %}
+        <div class="bg-white rounded-xl border border-surface-200/60 overflow-hidden">
+            <form method="POST" action="{{ url_for('admin.dfy_package_edit', pkg_id=pkg.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-surface-500 mb-1">Name</label>
+                        <input type="text" name="name" value="{{ pkg.name }}" class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-surface-500 mb-1">Slug</label>
+                        <input type="text" name="slug" value="{{ pkg.slug }}" class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-surface-500 mb-1">Billing Type</label>
+                        <select name="billing_type" class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm">
+                            <option value="one_time" {% if pkg.billing_type == 'one_time' %}selected{% endif %}>One-Time</option>
+                            <option value="recurring" {% if pkg.billing_type == 'recurring' %}selected{% endif %}>Recurring</option>
+                            <option value="custom_quote" {% if pkg.billing_type == 'custom_quote' %}selected{% endif %}>Custom Quote</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-surface-500 mb-1">Price (cents)</label>
+                        <input type="number" name="price_cents" value="{{ pkg.price_cents or '' }}" class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm" placeholder="e.g., 49900">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-surface-500 mb-1">Est. Days</label>
+                        <input type="number" name="estimated_days" value="{{ pkg.estimated_days or '' }}" class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-surface-500 mb-1">Sort Order</label>
+                        <input type="number" name="sort_order" value="{{ pkg.sort_order }}" class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-medium text-surface-500 mb-1">Description</label>
+                        <input type="text" name="description" value="{{ pkg.description }}" class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-surface-500 mb-1">Stripe Price ID</label>
+                        <input type="text" name="stripe_price_id" value="{{ pkg.stripe_price_id or '' }}" class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm" placeholder="price_...">
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="block text-xs font-medium text-surface-500 mb-1">Features (one per line)</label>
+                        <textarea name="features" rows="3" class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm resize-none">{% for f in pkg.features %}{{ f }}{% if not loop.last %}
+{% endif %}{% endfor %}</textarea>
+                    </div>
+                </div>
+                <div class="px-5 py-3 bg-surface-50 border-t border-surface-100 flex items-center justify-between">
+                    <label class="flex items-center gap-2 text-sm text-surface-600">
+                        <input type="checkbox" name="is_active" value="1" {% if pkg.is_active %}checked{% endif %} class="rounded border-surface-300 text-brand-600 focus:ring-brand-500">
+                        Active
+                    </label>
+                    <button type="submit" class="px-4 py-2 bg-surface-900 text-white text-sm font-medium rounded-lg hover:bg-surface-800 transition">Save Changes</button>
+                </div>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Create New Package -->
+    <div class="bg-white rounded-xl border-2 border-dashed border-surface-300 overflow-hidden">
+        <form method="POST" action="{{ url_for('admin.dfy_package_create') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="p-5">
+                <h3 class="text-base font-semibold text-surface-900 mb-4">Create New Package</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-surface-500 mb-1">Name</label>
+                        <input type="text" name="name" required class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm" placeholder="e.g., Premium CRM Setup">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-surface-500 mb-1">Slug</label>
+                        <input type="text" name="slug" required class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm" placeholder="e.g., premium-crm-setup">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-surface-500 mb-1">Billing Type</label>
+                        <select name="billing_type" class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm">
+                            <option value="one_time">One-Time</option>
+                            <option value="recurring">Recurring</option>
+                            <option value="custom_quote">Custom Quote</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-surface-500 mb-1">Price (cents)</label>
+                        <input type="number" name="price_cents" class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm" placeholder="e.g., 49900">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-surface-500 mb-1">Est. Days</label>
+                        <input type="number" name="estimated_days" class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm" placeholder="e.g., 5">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-surface-500 mb-1">Sort Order</label>
+                        <input type="number" name="sort_order" value="0" class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm">
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="block text-xs font-medium text-surface-500 mb-1">Description</label>
+                        <input type="text" name="description" class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm" placeholder="Brief description of the package">
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="block text-xs font-medium text-surface-500 mb-1">Features (one per line)</label>
+                        <textarea name="features" rows="3" class="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm resize-none" placeholder="Feature 1&#10;Feature 2&#10;Feature 3"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="px-5 py-3 bg-surface-50 border-t border-surface-100 flex items-center justify-between">
+                <label class="flex items-center gap-2 text-sm text-surface-600">
+                    <input type="checkbox" name="is_active" value="1" checked class="rounded border-surface-300 text-brand-600 focus:ring-brand-500">
+                    Active
+                </label>
+                <button type="submit" class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition">Create Package</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

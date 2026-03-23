@@ -1,0 +1,105 @@
+{% extends "layouts/admin.html" %}
+{% block page_title %}Revenue Dashboard{% endblock %}
+{% block content %}
+<div class="max-w-6xl space-y-6">
+
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-xl border border-surface-200 p-6">
+            <p class="text-xs font-semibold uppercase tracking-wider text-surface-400">Monthly Recurring Revenue</p>
+            <p class="text-3xl font-bold text-surface-900 mt-2">${{ '%.2f'|format(total_mrr / 100) }}</p>
+            <p class="text-xs text-surface-500 mt-1">From active subscriptions</p>
+        </div>
+        <div class="bg-white rounded-xl border border-surface-200 p-6">
+            <p class="text-xs font-semibold uppercase tracking-wider text-surface-400">Total Revenue</p>
+            <p class="text-3xl font-bold text-surface-900 mt-2">${{ '%.2f'|format(total_revenue / 100) }}</p>
+            <p class="text-xs text-surface-500 mt-1">All time payments</p>
+        </div>
+        <div class="bg-white rounded-xl border border-surface-200 p-6">
+            <p class="text-xs font-semibold uppercase tracking-wider text-surface-400">Top-Up Revenue</p>
+            <p class="text-3xl font-bold text-brand-600 mt-2">${{ '%.2f'|format(topup_revenue / 100) }}</p>
+            <p class="text-xs text-surface-500 mt-1">Minute pack purchases</p>
+        </div>
+        <div class="bg-white rounded-xl border border-surface-200 p-6">
+            <p class="text-xs font-semibold uppercase tracking-wider text-surface-400">Outstanding</p>
+            <div class="flex items-baseline gap-4 mt-2">
+                <div>
+                    <p class="text-2xl font-bold {% if open_invoices > 0 %}text-amber-600{% else %}text-surface-900{% endif %}">{{ open_invoices }}</p>
+                    <p class="text-xs text-surface-500">Open invoices</p>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold {% if uncollectible > 0 %}text-red-600{% else %}text-surface-900{% endif %}">{{ uncollectible }}</p>
+                    <p class="text-xs text-surface-500">Uncollectible</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subscription Breakdown -->
+    <div class="bg-white rounded-xl border border-surface-200">
+        <div class="px-6 py-4 border-b border-surface-200">
+            <h2 class="text-sm font-semibold text-surface-900">Active Subscriptions by Plan</h2>
+        </div>
+        <table class="w-full">
+            <thead>
+                <tr class="border-b border-surface-200">
+                    <th class="px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-surface-400">Plan</th>
+                    <th class="px-6 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-surface-400">Subscribers</th>
+                    <th class="px-6 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-surface-400">Price/mo</th>
+                    <th class="px-6 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-surface-400">MRR Contribution</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-surface-100">
+                {% for row in plan_breakdown %}
+                <tr class="hover:bg-surface-50 transition">
+                    <td class="px-6 py-4 text-sm font-semibold text-surface-900">{{ row.name }}</td>
+                    <td class="px-6 py-4 text-sm text-surface-700 text-right">{{ row.count }}</td>
+                    <td class="px-6 py-4 text-sm text-surface-700 text-right">${{ (row.price_monthly_cents / 100)|int }}</td>
+                    <td class="px-6 py-4 text-sm font-semibold text-surface-900 text-right">${{ '%.2f'|format(row.count * row.price_monthly_cents / 100) }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="px-6 py-12 text-center text-sm text-surface-500">No active subscriptions.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Recent Payments -->
+    <div class="bg-white rounded-xl border border-surface-200">
+        <div class="px-6 py-4 border-b border-surface-200">
+            <h2 class="text-sm font-semibold text-surface-900">Recent Payments</h2>
+        </div>
+        <table class="w-full">
+            <thead>
+                <tr class="border-b border-surface-200">
+                    <th class="px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-surface-400">Date</th>
+                    <th class="px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-surface-400">Tenant</th>
+                    <th class="px-6 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-surface-400">Amount</th>
+                    <th class="px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-surface-400">Status</th>
+                    <th class="px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-surface-400">Stripe ID</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-surface-100">
+                {% for p in recent_payments %}
+                <tr class="hover:bg-surface-50 transition">
+                    <td class="px-6 py-4 text-sm text-surface-700">{{ p.created_at.strftime('%b %d, %Y %H:%M') if p.created_at else '' }}</td>
+                    <td class="px-6 py-4 text-sm text-surface-700">{{ p.tenant_id[:8] }}...</td>
+                    <td class="px-6 py-4 text-sm font-semibold text-surface-900 text-right">${{ '%.2f'|format(p.amount_cents / 100) }}</td>
+                    <td class="px-6 py-4">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold
+                            {% if p.status == 'succeeded' %}bg-emerald-50 text-emerald-700
+                            {% elif p.status == 'failed' %}bg-red-50 text-red-700
+                            {% else %}bg-surface-100 text-surface-500{% endif %}">
+                            {{ p.status|capitalize }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-xs text-surface-500 font-mono">{{ p.stripe_payment_intent_id or '—' }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="px-6 py-12 text-center text-sm text-surface-500">No payments recorded.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

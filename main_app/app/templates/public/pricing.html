@@ -1,0 +1,52 @@
+{% extends "layouts/public.html" %}
+
+{% block title %}Pricing - {{ platform_name }}{% endblock %}
+
+{% block content %}
+<section class="max-w-7xl mx-auto px-6 py-20">
+    <div class="text-center mb-16">
+        <h2 class="text-3xl font-bold text-surface-900 mb-4">Simple, transparent pricing</h2>
+        <p class="text-surface-500 max-w-xl mx-auto">Choose the plan that fits your call volume. All plans include our AI agent builder and real-time analytics.</p>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        {% for plan in plans %}
+        <div class="card-hover bg-white rounded-xl border {% if loop.index == 2 %}border-brand-600 ring-2 ring-brand-600/20{% else %}border-surface-200{% endif %} p-8 flex flex-col">
+            {% if loop.index == 2 %}
+            <span class="inline-block self-start px-3 py-1 rounded-full text-xs font-semibold bg-brand-600 text-white mb-4">Most Popular</span>
+            {% endif %}
+            <h3 class="text-xl font-bold text-surface-900">{{ plan.name }}</h3>
+            <div class="mt-4 mb-6">
+                <span class="text-4xl font-bold text-surface-900">${{ (plan.price_monthly_cents / 100)|int }}</span>
+                <span class="text-surface-500">/month</span>
+            </div>
+            <ul class="space-y-3 mb-8 flex-1">
+                <li class="flex items-center gap-2 text-sm text-surface-700">
+                    <svg class="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    {{ plan.included_minutes }} minutes included
+                </li>
+                <li class="flex items-center gap-2 text-sm text-surface-700">
+                    <svg class="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    {{ plan.included_agents }} AI agent{{ 's' if plan.included_agents > 1 else '' }}
+                </li>
+                <li class="flex items-center gap-2 text-sm text-surface-700">
+                    <svg class="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    {{ plan.included_numbers }} phone number{{ 's' if plan.included_numbers > 1 else '' }}
+                </li>
+                <li class="flex items-center gap-2 text-sm text-surface-500">
+                    <svg class="w-4 h-4 text-surface-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    ${{ '%.2f'|format(plan.overage_rate_cents / 100) }}/min overage
+                </li>
+            </ul>
+            <a href="{{ url_for('public.signup') }}" class="block text-center px-6 py-3 rounded-lg font-semibold transition {% if loop.index == 2 %}bg-brand-600 text-white hover:bg-brand-700 shadow-lg shadow-brand-600/25{% else %}border border-surface-300 text-surface-700 hover:border-brand-600 hover:text-brand-600{% endif %}">
+                Get Started
+            </a>
+        </div>
+        {% else %}
+        <div class="col-span-3 text-center py-12 text-surface-500">
+            <p>No plans available yet. Check back soon!</p>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

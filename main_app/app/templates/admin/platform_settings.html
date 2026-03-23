@@ -1,0 +1,60 @@
+{% extends "layouts/admin.html" %}
+{% block page_title %}Platform Settings{% endblock %}
+{% block content %}
+<div class="max-w-4xl">
+    <div class="bg-white rounded-xl border border-surface-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-5 bg-gradient-to-r from-surface-50 to-white border-b border-surface-200">
+            <h2 class="text-lg font-extrabold text-surface-900">Platform Settings</h2>
+            <p class="text-sm text-surface-500 mt-1">Global configuration values that apply across the platform.</p>
+        </div>
+        <table class="w-full">
+            <thead>
+                <tr class="border-b border-surface-200">
+                    <th class="px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-surface-400">Key</th>
+                    <th class="px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-surface-400">Value</th>
+                    <th class="px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-surface-400">Description</th>
+                    <th class="px-6 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-surface-400">Status</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-surface-100">
+                {% for s in settings %}
+                <tr class="hover:bg-surface-50 transition group">
+                    <td class="px-6 py-4 text-sm font-mono font-medium text-surface-900">{{ s.key }}</td>
+                    <td class="px-6 py-4">
+                        <form method="POST" action="{{ url_for('admin.platform_settings_update') }}" class="flex items-center gap-2" id="form-{{ s.key }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="key" value="{{ s.key }}">
+                            {% if s.value is sameas true or s.value is sameas false %}
+                            <select name="value" onchange="this.form.submit()"
+                                    class="px-3 py-1.5 rounded-lg border border-surface-200 text-sm text-surface-800 bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                                <option value="true" {% if s.value %}selected{% endif %}>true</option>
+                                <option value="false" {% if not s.value %}selected{% endif %}>false</option>
+                            </select>
+                            {% else %}
+                            <input type="text" name="value" value="{{ s.value }}"
+                                   class="w-40 px-3 py-1.5 rounded-lg border border-surface-200 text-sm text-surface-800 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                            <button type="submit"
+                                    class="opacity-0 group-hover:opacity-100 px-3 py-1.5 rounded-lg text-xs font-bold bg-brand-600 text-white hover:bg-brand-700 transition">
+                                Save
+                            </button>
+                            {% endif %}
+                        </form>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-surface-500">{{ s.description or '-' }}</td>
+                    <td class="px-6 py-4 text-right">
+                        {% if s.value is sameas true or s.value is sameas false %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase
+                            {% if s.value %}bg-emerald-100 text-emerald-700{% else %}bg-red-100 text-red-700{% endif %}">
+                            {{ 'On' if s.value else 'Off' }}
+                        </span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="px-6 py-12 text-center text-sm text-surface-500">No platform settings configured.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

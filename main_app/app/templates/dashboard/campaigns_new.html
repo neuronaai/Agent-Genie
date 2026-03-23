@@ -1,0 +1,177 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block page_title %}New Campaign{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+
+    <!-- Breadcrumb -->
+    <nav class="text-sm text-surface-500">
+        <a href="{{ url_for('dashboard.campaigns_list') }}" class="hover:text-brand-600">Campaigns</a>
+        <span class="mx-1">/</span>
+        <span class="text-surface-800 font-medium">New Campaign</span>
+    </nav>
+
+    {% if not agents %}
+    <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-5">
+        <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+            <div>
+                <p class="text-sm font-medium text-yellow-800">No outbound agents available</p>
+                <p class="text-xs text-yellow-700 mt-1">You need at least one active outbound agent to create a campaign. <a href="{{ url_for('dashboard.agents_new') }}" class="underline font-medium">Create an outbound agent</a> first.</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <form action="{{ url_for('dashboard.campaigns_new') }}" method="POST" class="space-y-6">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <!-- Basic Info -->
+        <div class="bg-white rounded-xl border border-surface-200/60 p-6">
+            <h2 class="text-base font-semibold text-surface-800 mb-4">Campaign Details</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-surface-700 mb-1">Campaign Name <span class="text-red-500">*</span></label>
+                    <input type="text" name="name" required placeholder="e.g., Q1 Appointment Reminders"
+                           class="w-full text-sm border border-surface-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-surface-700 mb-1">Outbound Agent <span class="text-red-500">*</span></label>
+                        <select name="agent_id" required class="w-full text-sm border border-surface-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
+                            <option value="">Select an agent...</option>
+                            {% for a in agents %}
+                            <option value="{{ a.id }}">{{ a.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-surface-700 mb-1">Contact List <span class="text-red-500">*</span></label>
+                        <select name="contact_list_id" required class="w-full text-sm border border-surface-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
+                            <option value="">Select a list...</option>
+                            {% for cl in contact_lists %}
+                            <option value="{{ cl.id }}">{{ cl.name }} ({{ cl.contact_count or 0 }} contacts)</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-surface-700 mb-1">Caller ID Number <span class="text-red-500">*</span></label>
+                    <select name="caller_id_number_id" required class="w-full text-sm border border-surface-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
+                        <option value="">Select a phone number...</option>
+                        {% for pn in phone_numbers %}
+                        <option value="{{ pn.id }}">{{ pn.number }} {% if pn.agent_id %}(assigned to {{ pn.agent.name if pn.agent else 'agent' }}){% else %}(unassigned){% endif %}</option>
+                        {% endfor %}
+                    </select>
+                    <p class="text-xs text-surface-400 mt-1">This number will appear as the caller ID for all outbound calls in this campaign.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scheduling -->
+        <div class="bg-white rounded-xl border border-surface-200/60 p-6">
+            <h2 class="text-base font-semibold text-surface-800 mb-4">Scheduling</h2>
+            <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-surface-700 mb-1">Start Date</label>
+                        <input type="date" name="scheduled_date"
+                               class="w-full text-sm border border-surface-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
+                        <p class="text-xs text-surface-400 mt-1">Leave blank to start immediately on launch.</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-surface-700 mb-1">Start Time (UTC)</label>
+                        <input type="time" name="scheduled_time"
+                               class="w-full text-sm border border-surface-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calling Window (TCPA Compliance) -->
+        <div class="bg-white rounded-xl border border-surface-200/60 p-6">
+            <h2 class="text-base font-semibold text-surface-800 mb-1">Calling Window</h2>
+            <p class="text-xs text-surface-500 mb-4">Set the allowed calling hours. Calls will only be placed during this window in the contact's local timezone (TCPA compliance).</p>
+
+            <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-surface-700 mb-1">Window Start</label>
+                        <select name="window_start_min" class="w-full text-sm border border-surface-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
+                            <option value="480">8:00 AM</option>
+                            <option value="510">8:30 AM</option>
+                            <option value="540" selected>9:00 AM</option>
+                            <option value="570">9:30 AM</option>
+                            <option value="600">10:00 AM</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-surface-700 mb-1">Window End</label>
+                        <select name="window_end_min" class="w-full text-sm border border-surface-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
+                            <option value="1020">5:00 PM</option>
+                            <option value="1080">6:00 PM</option>
+                            <option value="1140">7:00 PM</option>
+                            <option value="1200">8:00 PM</option>
+                            <option value="1260" selected>9:00 PM</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-surface-700 mb-2">Allowed Days</label>
+                    <div class="flex flex-wrap gap-2">
+                        {% for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+                        <label class="inline-flex items-center gap-1.5 text-sm">
+                            <input type="checkbox" name="allowed_days" value="{{ day }}"
+                                   {{ 'checked' if day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] else '' }}
+                                   class="rounded border-surface-300 text-brand-600 focus:ring-brand-500">
+                            {{ day[:3] }}
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Retry Settings -->
+        <div class="bg-white rounded-xl border border-surface-200/60 p-6">
+            <h2 class="text-base font-semibold text-surface-800 mb-1">Retry Settings</h2>
+            <p class="text-xs text-surface-500 mb-4">Configure automatic retries for unanswered or failed calls.</p>
+
+            <div>
+                <label class="block text-sm font-medium text-surface-700 mb-1">Maximum Retries per Contact</label>
+                <select name="max_retries" class="w-full text-sm border border-surface-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
+                    <option value="0">No retries</option>
+                    <option value="1">1 retry</option>
+                    <option value="2" selected>2 retries</option>
+                    <option value="3">3 retries</option>
+                </select>
+                <p class="text-xs text-surface-400 mt-1">Retries apply to: busy, no-answer, and transient errors. Completed calls, voicemails, and invalid numbers are never retried.</p>
+            </div>
+        </div>
+
+        <!-- Consent Notice -->
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-5">
+            <div class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <div>
+                    <p class="text-sm font-medium text-blue-800">Consent and Compliance</p>
+                    <p class="text-xs text-blue-700 mt-1">By launching this campaign, you confirm that you have obtained proper consent from all contacts in the selected list. AgentGenie enforces TCPA-compliant calling windows and automatically respects opt-out requests, but consent collection is your responsibility.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3">
+            <a href="{{ url_for('dashboard.campaigns_list') }}" class="text-sm px-4 py-2.5 border border-surface-200 rounded-lg text-surface-600 hover:bg-surface-50 transition">
+                Cancel
+            </a>
+            <button type="submit" class="btn-primary text-sm px-6 py-2.5 rounded-lg font-medium" {{ 'disabled' if not agents else '' }}>
+                Create Campaign (Draft)
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

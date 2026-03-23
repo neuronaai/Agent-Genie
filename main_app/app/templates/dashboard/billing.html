@@ -1,0 +1,239 @@
+{% extends "layouts/dashboard.html" %}
+{% block page_title %}Billing & Subscription{% endblock %}
+{% block content %}
+<div class="max-w-6xl space-y-6">
+
+    <!-- Notifications Banner -->
+    {% if notifications %}
+    <div class="space-y-2">
+        {% for notif in notifications %}
+        {% if 'failed' in notif.subject|lower or 'exhausted' in notif.subject|lower %}
+        <div class="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl px-5 py-4">
+            <svg class="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+            <div>
+                <p class="text-sm font-semibold text-red-800">{{ notif.subject }}</p>
+                <p class="text-sm text-red-700 mt-0.5">{{ notif.body }}</p>
+            </div>
+        </div>
+        {% elif 'alert' in notif.subject|lower or 'warning' in notif.subject|lower %}
+        <div class="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-5 py-4">
+            <svg class="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+            <div>
+                <p class="text-sm font-semibold text-amber-800">{{ notif.subject }}</p>
+                <p class="text-sm text-amber-700 mt-0.5">{{ notif.body }}</p>
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Subscription & Usage Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Current Plan Card -->
+        <div class="bg-white rounded-xl border border-surface-200 p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-sm font-semibold text-surface-900">Current Plan</h2>
+                {% if summary.subscription and summary.subscription.cancel_at_period_end %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-50 text-red-700">Canceling</span>
+                {% elif summary.subscription %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700">{{ summary.subscription.status|capitalize }}</span>
+                {% endif %}
+            </div>
+            {% if summary.subscription and summary.subscription.plan %}
+            {% set plan = summary.subscription.plan %}
+            <p class="text-2xl font-bold text-surface-900">{{ plan.name }}</p>
+            <p class="text-3xl font-bold text-brand-600 mt-2">${{ (plan.price_monthly_cents / 100)|int }}<span class="text-sm font-normal text-surface-500">/mo</span></p>
+            <div class="mt-4 space-y-1.5 text-sm text-surface-600">
+                <p>{{ plan.included_minutes }} minutes included</p>
+                <p>{{ plan.included_agents }} agents included</p>
+                <p>{{ plan.included_numbers }} phone numbers included</p>
+            </div>
+            {% if summary.subscription.payment_method_last4 %}
+            <div class="mt-4 pt-4 border-t border-surface-100">
+                <p class="text-xs text-surface-500">Payment method</p>
+                <p class="text-sm font-medium text-surface-700 mt-0.5">{{ summary.subscription.payment_method_brand|default('Card')|capitalize }} ending in {{ summary.subscription.payment_method_last4 }}</p>
+            </div>
+            {% endif %}
+            {% if summary.subscription.current_period_end %}
+            <div class="mt-3">
+                <p class="text-xs text-surface-500">
+                    {% if summary.subscription.cancel_at_period_end %}
+                    Access ends {{ summary.subscription.current_period_end.strftime('%b %d, %Y') }}
+                    {% else %}
+                    Next billing {{ summary.subscription.current_period_end.strftime('%b %d, %Y') }}
+                    {% endif %}
+                </p>
+            </div>
+            {% endif %}
+            <div class="mt-5 flex gap-2">
+                {% if summary.subscription.cancel_at_period_end %}
+                <form action="{{ url_for('dashboard.billing_reactivate') }}" method="POST" class="flex-1">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="w-full px-4 py-2 text-sm font-semibold text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition">Reactivate</button>
+                </form>
+                {% else %}
+                <a href="{{ url_for('dashboard.pricing') }}" class="flex-1 px-4 py-2 text-sm font-semibold text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100 transition text-center">Change Plan</a>
+                <a href="{{ url_for('dashboard.billing_manage') }}" class="px-4 py-2 text-sm font-medium text-surface-600 bg-surface-100 rounded-lg hover:bg-surface-200 transition">Manage</a>
+                {% endif %}
+            </div>
+            {% else %}
+            <p class="text-sm text-surface-500 mt-2">No active subscription.</p>
+            <a href="{{ url_for('dashboard.pricing') }}" class="mt-4 inline-block px-4 py-2 text-sm font-semibold text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition">Choose a Plan</a>
+            {% endif %}
+        </div>
+
+        <!-- Usage Meter Card -->
+        <div class="bg-white rounded-xl border border-surface-200 p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-sm font-semibold text-surface-900">Usage This Period</h2>
+                <a href="{{ url_for('dashboard.billing_usage') }}" class="text-xs font-medium text-brand-600 hover:text-brand-700">View Details</a>
+            </div>
+            {% if usage.has_subscription %}
+            <!-- Minutes Usage Bar -->
+            <div class="mb-5">
+                <div class="flex items-baseline justify-between mb-2">
+                    <p class="text-sm font-medium text-surface-700">Minutes</p>
+                    <p class="text-sm text-surface-500">{{ usage.used_minutes }} / {{ usage.included_minutes }}</p>
+                </div>
+                <div class="w-full bg-surface-100 rounded-full h-3">
+                    <div class="h-3 rounded-full transition-all duration-500
+                        {% if usage.usage_pct >= 100 %}bg-red-500
+                        {% elif usage.usage_pct >= 90 %}bg-amber-500
+                        {% elif usage.usage_pct >= 75 %}bg-yellow-500
+                        {% else %}bg-brand-500{% endif %}"
+                        style="width: {{ usage.usage_pct }}%"></div>
+                </div>
+                <p class="text-xs text-surface-500 mt-1">{{ usage.remaining_included }} minutes remaining</p>
+            </div>
+
+            <!-- Top-up Balance -->
+            <div class="mb-5">
+                <div class="flex items-baseline justify-between">
+                    <p class="text-sm font-medium text-surface-700">Top-Up Balance</p>
+                    <p class="text-lg font-bold text-surface-900">{{ usage.topup_minutes_remaining }} <span class="text-xs font-normal text-surface-500">min</span></p>
+                </div>
+            </div>
+
+            <!-- Overage -->
+            {% if usage.overage_minutes > 0 %}
+            <div class="bg-red-50 rounded-lg px-4 py-3 mb-4">
+                <p class="text-sm font-semibold text-red-800">Overage: {{ usage.overage_minutes }} minutes</p>
+                <p class="text-xs text-red-600">Estimated cost: ${{ '%.2f'|format(usage.overage_cost_cents / 100) }} at ${{ '%.2f'|format(usage.overage_rate_cents / 100) }}/min</p>
+            </div>
+            {% endif %}
+
+            <!-- Resource Counts -->
+            <div class="grid grid-cols-2 gap-3 pt-4 border-t border-surface-100">
+                <div>
+                    <p class="text-xs text-surface-500">Active Agents</p>
+                    <p class="text-lg font-bold text-surface-900">{{ summary.active_agents }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-surface-500">Phone Numbers</p>
+                    <p class="text-lg font-bold text-surface-900">{{ summary.active_numbers }}</p>
+                    {% if summary.extra_numbers > 0 %}
+                    <p class="text-[10px] text-amber-600">{{ summary.extra_numbers }} extra (${{ '%.2f'|format(summary.extra_number_cost_cents / 100) }}/mo)</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <p class="text-sm text-surface-500">Subscribe to a plan to start tracking usage.</p>
+            {% endif %}
+        </div>
+
+        <!-- Quick Actions Card -->
+        <div class="space-y-6">
+            <!-- Top-Up Packs -->
+            <div class="bg-white rounded-xl border border-surface-200 p-6">
+                <h2 class="text-sm font-semibold text-surface-900 mb-4">Buy More Minutes</h2>
+                {% if topup_packs %}
+                <div class="space-y-2">
+                    {% for pack in topup_packs %}
+                    <form action="{{ url_for('dashboard.billing_topup') }}" method="POST" class="flex items-center justify-between gap-3 p-3 rounded-lg border border-surface-100 hover:border-brand-200 hover:bg-brand-50/30 transition">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="pack_id" value="{{ pack.id }}">
+                        <div>
+                            <p class="text-sm font-semibold text-surface-900">{{ pack.minutes }} minutes</p>
+                            <p class="text-xs text-surface-500">${{ '%.2f'|format(pack.price_cents / 100) }}</p>
+                        </div>
+                        <button type="submit" class="px-3 py-1.5 text-xs font-semibold text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100 transition">Buy</button>
+                    </form>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-sm text-surface-500">No top-up packs available.</p>
+                {% endif %}
+            </div>
+
+            <!-- Cancel Subscription -->
+            {% if summary.subscription and not summary.subscription.cancel_at_period_end %}
+            <div class="bg-white rounded-xl border border-surface-200 p-6">
+                <h2 class="text-sm font-semibold text-surface-900 mb-2">Cancel Subscription</h2>
+                <p class="text-xs text-surface-500 mb-3">Your access will continue until the end of the current billing period.</p>
+                <form action="{{ url_for('dashboard.billing_cancel') }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel your subscription?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition">Cancel Subscription</button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Recent Invoices -->
+    <div class="bg-white rounded-xl border border-surface-200">
+        <div class="px-6 py-4 border-b border-surface-200 flex items-center justify-between">
+            <h2 class="text-sm font-semibold text-surface-900">Recent Invoices</h2>
+            <a href="{{ url_for('dashboard.billing_invoices') }}" class="text-xs font-medium text-brand-600 hover:text-brand-700">View All</a>
+        </div>
+        <div class="divide-y divide-surface-100">
+            {% for inv in summary.invoices[:5] %}
+            <div class="flex items-center gap-4 px-6 py-4">
+                <div class="flex-1">
+                    <p class="text-sm font-medium text-surface-900">${{ '%.2f'|format(inv.amount_due_cents / 100) }}</p>
+                    <p class="text-xs text-surface-500">{{ inv.created_at.strftime('%b %d, %Y') if inv.created_at else '' }}</p>
+                </div>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold
+                    {% if inv.status == 'paid' %}bg-emerald-50 text-emerald-700
+                    {% elif inv.status == 'open' %}bg-amber-50 text-amber-700
+                    {% elif inv.status == 'void' %}bg-surface-100 text-surface-500
+                    {% else %}bg-blue-50 text-blue-700{% endif %}">
+                    {{ inv.status|capitalize }}
+                </span>
+                {% if inv.invoice_pdf_url %}
+                <a href="{{ inv.invoice_pdf_url }}" target="_blank" class="text-xs text-brand-600 hover:text-brand-700 font-medium">PDF</a>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="px-6 py-12 text-center text-sm text-surface-500">No invoices yet.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Recent Payments -->
+    {% if summary.payments %}
+    <div class="bg-white rounded-xl border border-surface-200">
+        <div class="px-6 py-4 border-b border-surface-200">
+            <h2 class="text-sm font-semibold text-surface-900">Recent Payments</h2>
+        </div>
+        <div class="divide-y divide-surface-100">
+            {% for payment in summary.payments[:5] %}
+            <div class="flex items-center gap-4 px-6 py-4">
+                <div class="flex-1">
+                    <p class="text-sm font-medium text-surface-900">${{ '%.2f'|format(payment.amount_cents / 100) }}</p>
+                    <p class="text-xs text-surface-500">{{ payment.created_at.strftime('%b %d, %Y') if payment.created_at else '' }}</p>
+                </div>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold
+                    {% if payment.status == 'succeeded' %}bg-emerald-50 text-emerald-700
+                    {% elif payment.status == 'failed' %}bg-red-50 text-red-700
+                    {% else %}bg-surface-100 text-surface-500{% endif %}">
+                    {{ payment.status|capitalize }}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "layouts/admin.html" %}
+{% block page_title %}Usage Reconciliation{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6">
+
+    <!-- Filters -->
+    <div class="flex items-center gap-3">
+        {% for s in ['all', 'pending', 'matched', 'adjusted', 'disputed'] %}
+        <a href="{{ url_for('admin.reconciliation', status=s) }}" class="px-3 py-1.5 rounded-lg text-xs font-bold {% if status_filter == s %}bg-white text-surface-900{% else %}bg-white/10 text-surface-300 hover:bg-white/20{% endif %} transition">{{ s|title }}</a>
+        {% endfor %}
+    </div>
+
+    <div class="bg-white/5 rounded-2xl border border-white/10 overflow-hidden">
+        <div class="px-6 py-4 border-b border-white/10">
+            <h2 class="text-lg font-extrabold text-white">Usage Records ({{ records|length }})</h2>
+        </div>
+        {% if records %}
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-white/10">
+                        <th class="px-4 py-3 text-left text-xs font-bold text-surface-400 uppercase">Call ID</th>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-surface-400 uppercase">Provider (s)</th>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-surface-400 uppercase">Billable (s)</th>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-surface-400 uppercase">Status</th>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-surface-400 uppercase">Reason</th>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-surface-400 uppercase">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    {% for r in records %}
+                    <tr>
+                        <td class="px-4 py-3 text-xs font-mono text-surface-300">{{ r.call_log_id[:12] if r.call_log_id else 'N/A' }}...</td>
+                        <td class="px-4 py-3 text-sm text-white">{{ r.provider_reported_seconds or 0 }}</td>
+                        <td class="px-4 py-3 text-sm text-white">{{ r.internally_billable_seconds or 0 }}</td>
+                        <td class="px-4 py-3">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold
+                                {% if r.reconciliation_status == 'matched' %}bg-emerald-500/20 text-emerald-400
+                                {% elif r.reconciliation_status == 'adjusted' %}bg-amber-500/20 text-amber-400
+                                {% elif r.reconciliation_status == 'disputed' %}bg-red-500/20 text-red-400
+                                {% else %}bg-surface-500/20 text-surface-300{% endif %}">
+                                {{ r.reconciliation_status or 'pending' }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-xs text-surface-400">{{ r.adjustment_reason or '—' }}</td>
+                        <td class="px-4 py-3">
+                            <form method="POST" action="{{ url_for('admin.reconciliation_adjust', record_id=r.id) }}" class="flex items-center gap-2">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="number" name="internally_billable_seconds" value="{{ r.internally_billable_seconds or 0 }}" class="w-20 px-2 py-1 rounded bg-white/10 border border-white/20 text-white text-xs">
+                                <input type="text" name="adjustment_reason" placeholder="Reason" class="w-32 px-2 py-1 rounded bg-white/10 border border-white/20 text-white text-xs">
+                                <button type="submit" class="px-2 py-1 rounded bg-brand-600 text-white text-xs font-bold hover:bg-brand-500">Adjust</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-8 text-center text-surface-400 text-sm">No usage records found for this filter.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

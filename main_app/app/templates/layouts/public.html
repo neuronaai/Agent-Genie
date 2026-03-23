@@ -1,0 +1,42 @@
+{% extends "layouts/base.html" %}
+
+{% block body %}
+<!-- Top Nav -->
+<nav class="fixed top-0 inset-x-0 z-40 glass border-b border-surface-200/60">
+    <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+        <a href="{{ url_for('public.landing') }}" class="flex items-center gap-2.5">
+            {% if branding and branding.logo_url %}
+                <img src="{{ branding.logo_url }}" alt="{{ branding.display_name }}" class="h-9">
+            {% else %}
+                <img src="{{ url_for('static', filename='img/lamp-icon-36.png') }}" alt="" class="h-8 w-8">
+                <span class="text-lg font-extrabold tracking-tight text-surface-900">Agent<span class="text-brand-600">Genie</span></span>
+            {% endif %}
+        </a>
+        <div class="flex items-center gap-6">
+            <a href="{{ url_for('public.pricing') }}" class="text-sm font-medium text-surface-600 hover:text-brand-600 transition">Pricing</a>
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('dashboard.home') }}" class="text-sm font-semibold px-5 py-2.5 rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition shadow-premium-md hover:shadow-glow-brand">Dashboard</a>
+            {% else %}
+                <a href="{{ url_for('public.login') }}" class="text-sm font-medium text-surface-600 hover:text-brand-600 transition">Sign In</a>
+                <a href="{{ url_for('public.signup') }}" class="text-sm font-semibold px-5 py-2.5 rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition shadow-premium-md hover:shadow-glow-brand">Get Started</a>
+            {% endif %}
+        </div>
+    </div>
+</nav>
+
+<!-- Main Content -->
+<main class="pt-16 min-h-screen">
+    {% block content %}{% endblock %}
+</main>
+
+<!-- Footer -->
+<footer class="border-t border-surface-200/60 bg-white">
+    <div class="max-w-7xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-2">
+            <img src="{{ url_for('static', filename='img/lamp-icon-28.png') }}" alt="" class="h-6 w-6 opacity-50">
+            <span class="text-sm font-semibold text-surface-400">AgentGenie</span>
+        </div>
+        <p class="text-sm text-surface-400">&copy; 2026 {{ branding.display_name if branding else platform_name }}. All rights reserved.</p>
+    </div>
+</footer>
+{% endblock %}

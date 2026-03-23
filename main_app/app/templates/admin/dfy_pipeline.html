@@ -1,0 +1,91 @@
+{% extends "layouts/admin.html" %}
+
+{% block page_title %}DFY Pipeline{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
+        {% set status_list = ['intake', 'pending_payment', 'in_progress', 'in_review', 'completed', 'canceled'] %}
+        {% set status_labels = {'intake': 'Intake', 'pending_payment': 'Pending Pay', 'in_progress': 'In Progress', 'in_review': 'In Review', 'completed': 'Completed', 'canceled': 'Canceled'} %}
+        {% set status_colors = {'intake': 'text-blue-600', 'pending_payment': 'text-amber-600', 'in_progress': 'text-indigo-600', 'in_review': 'text-purple-600', 'completed': 'text-green-600', 'canceled': 'text-red-600'} %}
+        {% for st in status_list %}
+        <div class="bg-white rounded-xl border border-surface-200/60 p-4 text-center">
+            <p class="text-2xl font-bold {{ status_colors[st] }}">{{ projects|selectattr('status', 'equalto', st)|list|length }}</p>
+            <p class="text-xs text-surface-500 mt-0.5">{{ status_labels[st] }}</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-xl border border-surface-200/60 p-4">
+        <form method="GET" class="flex items-center gap-4">
+            <select name="status" class="px-3 py-2 border border-surface-200 rounded-lg text-sm">
+                <option value="">All Statuses</option>
+                {% for st in status_list %}
+                <option value="{{ st }}" {% if status_filter == st %}selected{% endif %}>{{ status_labels[st] }}</option>
+                {% endfor %}
+            </select>
+            <select name="owner" class="px-3 py-2 border border-surface-200 rounded-lg text-sm">
+                <option value="">All Owners</option>
+                <option value="unassigned" {% if owner_filter == 'unassigned' %}selected{% endif %}>Unassigned</option>
+                {% for admin in admins %}
+                <option value="{{ admin.id }}" {% if owner_filter == admin.id|string %}selected{% endif %}>{{ admin.email }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="px-4 py-2 bg-surface-900 text-white text-sm font-medium rounded-lg hover:bg-surface-800 transition">Filter</button>
+            {% if status_filter or owner_filter %}
+            <a href="{{ url_for('admin.dfy_pipeline') }}" class="text-sm text-surface-500 hover:text-surface-700">Clear</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Projects Table -->
+    <div class="bg-white rounded-xl border border-surface-200/60 overflow-hidden">
+        <table class="w-full text-sm">
+            <thead class="bg-surface-50 border-b border-surface-200/60">
+                <tr>
+                    <th class="text-left px-4 py-3 font-medium text-surface-500">Package</th>
+                    <th class="text-left px-4 py-3 font-medium text-surface-500">Tenant</th>
+                    <th class="text-left px-4 py-3 font-medium text-surface-500">Status</th>
+                    <th class="text-left px-4 py-3 font-medium text-surface-500">Owner</th>
+                    <th class="text-left px-4 py-3 font-medium text-surface-500">Price</th>
+                    <th class="text-left px-4 py-3 font-medium text-surface-500">Target</th>
+                    <th class="text-left px-4 py-3 font-medium text-surface-500">Submitted</th>
+                    <th class="text-right px-4 py-3 font-medium text-surface-500"></th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-surface-100">
+                {% for project in projects %}
+                <tr class="hover:bg-surface-50/50 transition">
+                    <td class="px-4 py-3 font-medium text-surface-800">{{ project.package.name if project.package else 'Custom' }}</td>
+                    <td class="px-4 py-3 text-surface-600">{{ project.tenant.organization.name if project.tenant and project.tenant.organization else 'N/A' }}</td>
+                    <td class="px-4 py-3">
+                        {% set sc = {'intake': 'bg-blue-100 text-blue-700', 'pending_payment': 'bg-amber-100 text-amber-700', 'in_progress': 'bg-indigo-100 text-indigo-700', 'in_review': 'bg-purple-100 text-purple-700', 'completed': 'bg-green-100 text-green-700', 'canceled': 'bg-red-100 text-red-700'} %}
+                        <span class="px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded-full {{ sc.get(project.status, 'bg-surface-100 text-surface-600') }}">
+                            {{ project.status|replace('_', ' ') }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-surface-600">
+                        {% if project.owner %}{{ project.owner.email.split('@')[0] }}{% else %}<span class="text-amber-500">Unassigned</span>{% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-surface-600">
+                        {% if project.quoted_price_cents %}${{ (project.quoted_price_cents / 100)|round(0)|int }}{% else %}—{% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-surface-600">
+                        {% if project.target_delivery_date %}{{ project.target_delivery_date.strftime('%b %d') }}{% else %}—{% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-surface-400">{{ project.created_at.strftime('%b %d, %Y') }}</td>
+                    <td class="px-4 py-3 text-right">
+                        <a href="{{ url_for('admin.dfy_project_admin', project_id=project.id) }}" class="text-brand-600 hover:text-brand-700 font-medium text-sm">Manage</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% if not projects %}
+        <div class="text-center py-12 text-surface-400 text-sm">No projects found.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

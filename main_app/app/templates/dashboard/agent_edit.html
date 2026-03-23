@@ -1,0 +1,278 @@
+{% extends "layouts/dashboard.html" %}
+{% block page_title %}Edit {{ agent.name }}{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+        <a href="{{ url_for('dashboard.agent_detail', agent_id=agent.id) }}" class="text-sm text-brand-600 hover:text-brand-700 flex items-center gap-1 mb-3 font-medium">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            Back to Agent
+        </a>
+        <h1 class="text-3xl font-extrabold text-surface-900 tracking-tight">Edit {{ agent.name }}</h1>
+        <p class="text-surface-500 mt-2">Changes will be synced to Retell AI automatically.</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('dashboard.agent_edit_submit', agent_id=agent.id) }}" class="space-y-6">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <!-- Basic Info -->
+        <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+            <div class="border-b border-surface-200 px-6 py-4 bg-gradient-to-r from-surface-50 to-white">
+                <h2 class="text-base font-bold text-surface-900">Basic Information</h2>
+            </div>
+            <div class="p-6 space-y-5">
+                <div>
+                    <label class="block text-sm font-bold text-surface-800 mb-2">Agent Name</label>
+                    <input type="text" name="agent_name" value="{{ agent.name }}"
+                        class="w-full px-4 py-3 rounded-xl border-2 border-surface-200 text-sm text-surface-800 focus:ring-4 focus:ring-brand-600/10 focus:border-brand-500 outline-none transition">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-surface-800 mb-2">Tone</label>
+                    <select name="tone" class="w-full px-4 py-3 rounded-xl border-2 border-surface-200 text-sm text-surface-800 focus:ring-4 focus:ring-brand-600/10 focus:border-brand-500 outline-none transition">
+                        {% set current_tone = config.tone if config else 'professional' %}
+                        <option value="professional" {{ 'selected' if current_tone == 'professional' }}>Professional</option>
+                        <option value="friendly" {{ 'selected' if current_tone == 'friendly' }}>Friendly</option>
+                        <option value="formal" {{ 'selected' if current_tone == 'formal' }}>Formal</option>
+                        <option value="casual" {{ 'selected' if current_tone == 'casual' }}>Casual</option>
+                        <option value="empathetic" {{ 'selected' if current_tone == 'empathetic' }}>Empathetic</option>
+                        <option value="warm" {{ 'selected' if current_tone == 'warm' }}>Warm</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-surface-800 mb-2">Greeting Message</label>
+                    <input type="text" name="greeting_message"
+                        value="{{ config.business_context.greeting_message if config and config.business_context is mapping and config.business_context.get('greeting_message') else '' }}"
+                        class="w-full px-4 py-3 rounded-xl border-2 border-surface-200 text-sm text-surface-800 focus:ring-4 focus:ring-brand-600/10 focus:border-brand-500 outline-none transition"
+                        placeholder="Hello! Thank you for calling...">
+                </div>
+            </div>
+        </div>
+
+        <!-- Voice & Language Selection -->
+        {% with current_language=agent.language or 'en-US', current_voice_id=agent.voice_id or '', voices_api_url=url_for('dashboard.api_voices') %}
+            {% include 'partials/voice_language_selector.html' %}
+        {% endwith %}
+
+        <!-- Business Context -->
+        <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+            <div class="border-b border-surface-200 px-6 py-4 bg-gradient-to-r from-surface-50 to-white">
+                <h2 class="text-base font-bold text-surface-900">Business Context</h2>
+            </div>
+            <div class="p-6">
+                {#
+                  Provisioning stores the original structured config inside
+                  business_context['full_config'].  The user-facing business
+                  context text lives at full_config.business_context (a string)
+                  or at the legacy top-level key 'text'.
+                #}
+                {% set _bc = config.business_context if config and config.business_context is mapping else {} %}
+                {% set _fc = _bc.get('full_config', {}) if _bc is mapping else {} %}
+                {% set _bc_text = _fc.get('business_context', '') or _bc.get('text', '') %}
+                <textarea name="business_context" rows="4"
+                    class="w-full px-4 py-3 rounded-xl border-2 border-surface-200 text-sm text-surface-800 focus:ring-4 focus:ring-brand-600/10 focus:border-brand-500 outline-none transition resize-none leading-relaxed"
+                    placeholder="Describe your business, services, hours, etc.">{{ _bc_text }}</textarea>
+            </div>
+        </div>
+
+        <!-- Agent Role (canonical structured role field) -->
+        <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+            <div class="border-b border-surface-200 px-6 py-4 bg-gradient-to-r from-surface-50 to-white">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-base font-bold text-surface-900">Agent Behavior</h2>
+                    <span class="text-xs font-medium text-surface-400 bg-surface-100 px-2.5 py-1 rounded-full">Advanced</span>
+                </div>
+            </div>
+            <div class="p-6">
+                <p class="text-xs text-surface-500 mb-3">This defines your agent's core role and personality. Edit with care — the full Retell prompt is rebuilt from this field plus the structured data (handoffs, guardrails, KB, etc.) on every sync.</p>
+                {#
+                  The canonical agent_role lives inside business_context['full_config']['agent_role'].
+                  We must NOT read from config.role_description, which stores the compiled full prompt.
+                #}
+                {% set _agent_role = _fc.get('agent_role', '') or _fc.get('role_description', '') %}
+                <textarea name="agent_role" rows="8"
+                    class="w-full px-4 py-3 rounded-xl border-2 border-surface-200 text-sm text-surface-800 focus:ring-4 focus:ring-brand-600/10 focus:border-brand-500 outline-none transition resize-none leading-relaxed font-mono text-xs"
+                    >{{ _agent_role }}</textarea>
+            </div>
+        </div>
+
+        <!-- Handoff Rules -->
+        <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+            <div class="border-b border-surface-200 px-6 py-4 bg-gradient-to-r from-blue-50 to-white">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-base font-bold text-surface-900 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/></svg>
+                        Handoff Rules
+                    </h2>
+                    <button type="button" onclick="addHandoffRule()" class="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 transition">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        Add Rule
+                    </button>
+                </div>
+            </div>
+            <div class="p-6 space-y-4" id="handoffRulesContainer">
+                {% for rule in handoff_rules %}
+                <div class="handoff-rule border-2 border-surface-200 rounded-xl p-4 space-y-3 relative group hover:border-blue-200 transition" data-index="{{ loop.index0 }}">
+                    <button type="button" onclick="removeRule(this)" class="absolute top-3 right-3 w-7 h-7 rounded-lg bg-surface-100 text-surface-400 hover:bg-red-100 hover:text-red-500 flex items-center justify-center transition opacity-0 group-hover:opacity-100">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                    <input type="hidden" name="handoff_rule_id_{{ loop.index0 }}" value="{{ rule.id }}">
+                    <div>
+                        <label class="block text-xs font-semibold text-surface-600 mb-1">When this happens...</label>
+                        <input type="text" name="handoff_condition_{{ loop.index0 }}" value="{{ rule.condition }}"
+                            class="w-full px-3 py-2.5 rounded-lg border border-surface-200 text-sm text-surface-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none transition"
+                            placeholder="e.g., caller has a dental emergency">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-surface-600 mb-1">Transfer to number</label>
+                            <input type="text" name="handoff_number_{{ loop.index0 }}" value="{{ rule.destination_number or '' }}"
+                                class="w-full px-3 py-2.5 rounded-lg border border-surface-200 text-sm text-surface-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none transition"
+                                placeholder="+1 (555) 123-4567">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-surface-600 mb-1">Transfer message</label>
+                            <input type="text" name="handoff_message_{{ loop.index0 }}" value="{{ rule.transfer_message or '' }}"
+                                class="w-full px-3 py-2.5 rounded-lg border border-surface-200 text-sm text-surface-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none transition"
+                                placeholder="I'll transfer you now...">
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% if not handoff_rules %}
+                <p class="text-sm text-surface-400 text-center py-4" id="noHandoffMsg">No handoff rules yet. Click "Add Rule" to create one.</p>
+                {% endif %}
+            </div>
+            <input type="hidden" name="handoff_rule_count" id="handoffRuleCount" value="{{ handoff_rules|length }}">
+        </div>
+
+        <!-- Guardrail Rules -->
+        <div class="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+            <div class="border-b border-surface-200 px-6 py-4 bg-gradient-to-r from-red-50 to-white">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-base font-bold text-surface-900 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM11 14a1 1 0 11-2 0 1 1 0 012 0zm0-7a1 1 0 10-2 0v3a1 1 0 102 0V7z" clip-rule="evenodd"/></svg>
+                        Safety Guardrails
+                    </h2>
+                    <button type="button" onclick="addGuardrailRule()" class="text-xs font-semibold text-red-600 hover:text-red-700 flex items-center gap-1 transition">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        Add Guardrail
+                    </button>
+                </div>
+            </div>
+            <div class="p-6 space-y-4" id="guardrailRulesContainer">
+                {% for rule in guardrail_rules %}
+                <div class="guardrail-rule border-2 border-surface-200 rounded-xl p-4 space-y-3 relative group hover:border-red-200 transition" data-index="{{ loop.index0 }}">
+                    <button type="button" onclick="removeRule(this)" class="absolute top-3 right-3 w-7 h-7 rounded-lg bg-surface-100 text-surface-400 hover:bg-red-100 hover:text-red-500 flex items-center justify-center transition opacity-0 group-hover:opacity-100">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                    <input type="hidden" name="guardrail_rule_id_{{ loop.index0 }}" value="{{ rule.id }}">
+                    <div>
+                        <label class="block text-xs font-semibold text-surface-600 mb-1">Prohibited topic</label>
+                        <input type="text" name="guardrail_topic_{{ loop.index0 }}" value="{{ rule.prohibited_topic }}"
+                            class="w-full px-3 py-2.5 rounded-lg border border-surface-200 text-sm text-surface-800 focus:ring-2 focus:ring-red-500/20 focus:border-red-400 outline-none transition"
+                            placeholder="e.g., specific medical advice">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-surface-600 mb-1">Fallback response</label>
+                        <input type="text" name="guardrail_response_{{ loop.index0 }}" value="{{ rule.fallback_message }}"
+                            class="w-full px-3 py-2.5 rounded-lg border border-surface-200 text-sm text-surface-800 focus:ring-2 focus:ring-red-500/20 focus:border-red-400 outline-none transition"
+                            placeholder="I'm not able to help with that. Please consult a professional.">
+                    </div>
+                </div>
+                {% endfor %}
+                {% if not guardrail_rules %}
+                <p class="text-sm text-surface-400 text-center py-4" id="noGuardrailMsg">No guardrails yet. Click "Add Guardrail" to create one.</p>
+                {% endif %}
+            </div>
+            <input type="hidden" name="guardrail_rule_count" id="guardrailRuleCount" value="{{ guardrail_rules|length }}">
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-end gap-3 pt-2">
+            <a href="{{ url_for('dashboard.agent_detail', agent_id=agent.id) }}" class="px-6 py-3 rounded-xl border border-surface-300 text-sm font-semibold text-surface-600 hover:bg-surface-50 hover:border-surface-400 transition">Cancel</a>
+            <button type="submit" class="px-7 py-3 rounded-xl bg-gradient-to-r from-brand-600 to-brand-700 text-white text-sm font-bold hover:from-brand-700 hover:to-brand-800 transition shadow-lg shadow-brand-600/30">
+                Save All Changes
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+let handoffCount = {{ handoff_rules|length }};
+let guardrailCount = {{ guardrail_rules|length }};
+
+function addHandoffRule() {
+    const container = document.getElementById('handoffRulesContainer');
+    const noMsg = document.getElementById('noHandoffMsg');
+    if (noMsg) noMsg.remove();
+
+    const idx = handoffCount;
+    const html = `
+    <div class="handoff-rule border-2 border-blue-200 rounded-xl p-4 space-y-3 relative group bg-blue-50/30 animate-fadeIn" data-index="${idx}">
+        <button type="button" onclick="removeRule(this)" class="absolute top-3 right-3 w-7 h-7 rounded-lg bg-surface-100 text-surface-400 hover:bg-red-100 hover:text-red-500 flex items-center justify-center transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+        <div>
+            <label class="block text-xs font-semibold text-surface-600 mb-1">When this happens...</label>
+            <input type="text" name="handoff_condition_${idx}" class="w-full px-3 py-2.5 rounded-lg border border-surface-200 text-sm text-surface-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none transition" placeholder="e.g., caller requests a manager">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+            <div>
+                <label class="block text-xs font-semibold text-surface-600 mb-1">Transfer to number</label>
+                <input type="text" name="handoff_number_${idx}" class="w-full px-3 py-2.5 rounded-lg border border-surface-200 text-sm text-surface-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none transition" placeholder="+1 (555) 123-4567">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-surface-600 mb-1">Transfer message</label>
+                <input type="text" name="handoff_message_${idx}" class="w-full px-3 py-2.5 rounded-lg border border-surface-200 text-sm text-surface-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none transition" placeholder="I'll transfer you now...">
+            </div>
+        </div>
+    </div>`;
+    container.insertAdjacentHTML('beforeend', html);
+    handoffCount++;
+    document.getElementById('handoffRuleCount').value = handoffCount;
+}
+
+function addGuardrailRule() {
+    const container = document.getElementById('guardrailRulesContainer');
+    const noMsg = document.getElementById('noGuardrailMsg');
+    if (noMsg) noMsg.remove();
+
+    const idx = guardrailCount;
+    const html = `
+    <div class="guardrail-rule border-2 border-red-200 rounded-xl p-4 space-y-3 relative group bg-red-50/30 animate-fadeIn" data-index="${idx}">
+        <button type="button" onclick="removeRule(this)" class="absolute top-3 right-3 w-7 h-7 rounded-lg bg-surface-100 text-surface-400 hover:bg-red-100 hover:text-red-500 flex items-center justify-center transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+        <div>
+            <label class="block text-xs font-semibold text-surface-600 mb-1">Prohibited topic</label>
+            <input type="text" name="guardrail_topic_${idx}" class="w-full px-3 py-2.5 rounded-lg border border-surface-200 text-sm text-surface-800 focus:ring-2 focus:ring-red-500/20 focus:border-red-400 outline-none transition" placeholder="e.g., competitor pricing">
+        </div>
+        <div>
+            <label class="block text-xs font-semibold text-surface-600 mb-1">Fallback response</label>
+            <input type="text" name="guardrail_response_${idx}" class="w-full px-3 py-2.5 rounded-lg border border-surface-200 text-sm text-surface-800 focus:ring-2 focus:ring-red-500/20 focus:border-red-400 outline-none transition" placeholder="I'm not able to help with that...">
+        </div>
+    </div>`;
+    container.insertAdjacentHTML('beforeend', html);
+    guardrailCount++;
+    document.getElementById('guardrailRuleCount').value = guardrailCount;
+}
+
+function removeRule(btn) {
+    const ruleDiv = btn.closest('.handoff-rule, .guardrail-rule');
+    ruleDiv.style.opacity = '0';
+    ruleDiv.style.transform = 'translateX(20px)';
+    ruleDiv.style.transition = 'all 0.3s ease';
+    setTimeout(() => ruleDiv.remove(), 300);
+}
+</script>
+
+<style>
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeIn { animation: fadeIn 0.3s ease; }
+</style>
+{% endblock %}

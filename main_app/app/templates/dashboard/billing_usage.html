@@ -1,0 +1,160 @@
+{% extends "layouts/dashboard.html" %}
+{% block page_title %}Usage Details{% endblock %}
+{% block header_actions %}
+<a href="{{ url_for('dashboard.billing') }}" class="text-sm font-medium text-surface-500 hover:text-surface-700 transition">Back to Billing</a>
+{% endblock %}
+{% block content %}
+<div class="max-w-6xl space-y-6">
+
+    <!-- Current Period Summary -->
+    <div class="bg-white rounded-xl border border-surface-200 p-6">
+        <h2 class="text-sm font-semibold text-surface-900 mb-4">Current Billing Period</h2>
+        {% if usage.has_subscription %}
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-6">
+            <div>
+                <p class="text-xs text-surface-500">Plan</p>
+                <p class="text-lg font-bold text-surface-900">{{ usage.plan_name }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-surface-500">Included Minutes</p>
+                <p class="text-lg font-bold text-surface-900">{{ usage.included_minutes }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-surface-500">Used Minutes</p>
+                <p class="text-lg font-bold {% if usage.usage_pct >= 90 %}text-red-600{% else %}text-surface-900{% endif %}">{{ usage.used_minutes }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-surface-500">Top-Up Balance</p>
+                <p class="text-lg font-bold text-brand-600">{{ usage.topup_minutes_remaining }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-surface-500">Overage</p>
+                <p class="text-lg font-bold {% if usage.overage_minutes > 0 %}text-red-600{% else %}text-surface-900{% endif %}">{{ usage.overage_minutes }} min</p>
+                {% if usage.overage_minutes > 0 %}
+                <p class="text-xs text-red-500">${{ '%.2f'|format(usage.overage_cost_cents / 100) }}</p>
+                {% endif %}
+            </div>
+        </div>
+        <!-- Usage Bar -->
+        <div class="mt-5">
+            <div class="w-full bg-surface-100 rounded-full h-4">
+                <div class="h-4 rounded-full transition-all duration-500
+                    {% if usage.usage_pct >= 100 %}bg-red-500
+                    {% elif usage.usage_pct >= 90 %}bg-amber-500
+                    {% elif usage.usage_pct >= 75 %}bg-yellow-500
+                    {% else %}bg-brand-500{% endif %}"
+                    style="width: {{ usage.usage_pct }}%"></div>
+            </div>
+            <div class="flex justify-between mt-1">
+                <p class="text-xs text-surface-500">{{ usage.usage_pct }}% used</p>
+                <p class="text-xs text-surface-500">
+                    {% if usage.period_start and usage.period_end %}
+                    {{ usage.period_start.strftime('%b %d') if usage.period_start.strftime is defined else usage.period_start }} &mdash; {{ usage.period_end.strftime('%b %d, %Y') if usage.period_end.strftime is defined else usage.period_end }}
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        {% else %}
+        <p class="text-sm text-surface-500">No active subscription. Subscribe to a plan to start tracking usage.</p>
+        {% endif %}
+    </div>
+
+    <!-- Per-Agent Breakdown -->
+    {% if agent_usage %}
+    <div class="bg-white rounded-xl border border-surface-200">
+        <div class="px-6 py-4 border-b border-surface-200">
+            <h2 class="text-sm font-semibold text-surface-900">Usage by Agent</h2>
+        </div>
+        <table class="w-full">
+            <thead>
+                <tr class="border-b border-surface-200">
+                    <th class="px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-surface-400">Agent</th>
+                    <th class="px-6 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-surface-400">Calls</th>
+                    <th class="px-6 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-surface-400">Total Minutes</th>
+                    <th class="px-6 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-surface-400">Avg Duration</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-surface-100">
+                {% for row in agent_usage %}
+                <tr class="hover:bg-surface-50 transition">
+                    <td class="px-6 py-4 text-sm font-medium text-surface-900">{{ row.name or 'Unknown Agent' }}</td>
+                    <td class="px-6 py-4 text-sm text-surface-700 text-right">{{ row.call_count }}</td>
+                    <td class="px-6 py-4 text-sm text-surface-700 text-right">{{ (row.total_seconds // 60) }}</td>
+                    <td class="px-6 py-4 text-sm text-surface-700 text-right">
+                        {% if row.call_count > 0 %}{{ (row.total_seconds // row.call_count // 60) }}m {{ (row.total_seconds // row.call_count % 60) }}s{% else %}&mdash;{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Historical Summaries -->
+    {% if summaries %}
+    <div class="bg-white rounded-xl border border-surface-200">
+        <div class="px-6 py-4 border-b border-surface-200">
+            <h2 class="text-sm font-semibold text-surface-900">Billing Period History</h2>
+        </div>
+        <table class="w-full">
+            <thead>
+                <tr class="border-b border-surface-200">
+                    <th class="px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-surface-400">Period</th>
+                    <th class="px-6 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-surface-400">Included Used</th>
+                    <th class="px-6 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-surface-400">Top-Up Used</th>
+                    <th class="px-6 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-surface-400">Overage</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-surface-100">
+                {% for s in summaries %}
+                <tr class="hover:bg-surface-50 transition">
+                    <td class="px-6 py-4 text-sm font-medium text-surface-900">
+                        {{ s.billing_period_start.strftime('%b %d') if s.billing_period_start.strftime is defined else s.billing_period_start }} &mdash; {{ s.billing_period_end.strftime('%b %d, %Y') if s.billing_period_end.strftime is defined else s.billing_period_end }}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-surface-700 text-right">{{ s.total_included_minutes_used }} min</td>
+                    <td class="px-6 py-4 text-sm text-surface-700 text-right">{{ s.total_topup_minutes_used }} min</td>
+                    <td class="px-6 py-4 text-sm text-right {% if s.total_overage_minutes > 0 %}text-red-600 font-semibold{% else %}text-surface-700{% endif %}">{{ s.total_overage_minutes }} min</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Recent Usage Records -->
+    {% if records %}
+    <div class="bg-white rounded-xl border border-surface-200">
+        <div class="px-6 py-4 border-b border-surface-200">
+            <h2 class="text-sm font-semibold text-surface-900">Recent Usage Records</h2>
+        </div>
+        <table class="w-full">
+            <thead>
+                <tr class="border-b border-surface-200">
+                    <th class="px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-surface-400">Date</th>
+                    <th class="px-6 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-surface-400">Provider Reported</th>
+                    <th class="px-6 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-surface-400">Billed</th>
+                    <th class="px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-surface-400">Status</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-surface-100">
+                {% for r in records[:20] %}
+                <tr class="hover:bg-surface-50 transition">
+                    <td class="px-6 py-4 text-sm text-surface-700">{{ r.created_at.strftime('%b %d, %H:%M') if r.created_at else '' }}</td>
+                    <td class="px-6 py-4 text-sm text-surface-700 text-right">{{ r.provider_reported_seconds }}s</td>
+                    <td class="px-6 py-4 text-sm text-surface-700 text-right">{{ r.internally_billable_seconds }}s</td>
+                    <td class="px-6 py-4">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold
+                            {% if r.reconciliation_status == 'matched' %}bg-emerald-50 text-emerald-700
+                            {% elif r.reconciliation_status == 'adjusted' %}bg-amber-50 text-amber-700
+                            {% else %}bg-red-50 text-red-700{% endif %}">
+                            {{ r.reconciliation_status|capitalize }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

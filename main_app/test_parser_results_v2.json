@@ -1,0 +1,751 @@
+[
+  {
+    "test": "1. CONTRADICTIONS \u2014 Tone conflict",
+    "status": "PASS",
+    "elapsed_seconds": 9.81,
+    "agent_name": "LawFirm Agent",
+    "tone": "professional",
+    "greeting": "Hello! Thank you for calling our law firm. How may I assist you today?",
+    "detected_industry": "legal",
+    "is_multi_location": false,
+    "locations_count": 0,
+    "locations": [],
+    "contradictions_count": 2,
+    "contradictions": [
+      {
+        "category": "tone",
+        "description": "Conflict between being casual with slang and emojis versus being extremely formal and professional.",
+        "instruction_a": "The agent should be very casual, use slang and emojis.",
+        "instruction_b": "But also be extremely formal and professional at all times.",
+        "resolution_applied": "Set the tone to 'professional' to align with legal industry standards."
+      },
+      {
+        "category": "tone",
+        "description": "Conflict between not using contractions and using lots of contractions to sound friendly.",
+        "instruction_a": "Never use contractions.",
+        "instruction_b": "Use lots of contractions to sound friendly.",
+        "resolution_applied": "Chose a professional tone without contractions to maintain consistency."
+      }
+    ],
+    "handoff_rules_count": 1,
+    "handoff_rules": [
+      {
+        "condition": "caller explicitly asks for a human",
+        "destination_number": null,
+        "transfer_message": "Let me transfer you to a team member for further assistance.",
+        "location": null
+      }
+    ],
+    "guardrails_count": 4,
+    "guardrails": [
+      {
+        "prohibited_topic": "legal advice",
+        "fallback_message": "I'm sorry, I can't provide legal advice. Let me connect you with a legal professional.",
+        "industry_relevance": "legal"
+      },
+      {
+        "prohibited_topic": "case outcome predictions",
+        "fallback_message": "I can't predict case outcomes, but I can connect you with someone who may assist.",
+        "industry_relevance": "legal"
+      },
+      {
+        "prohibited_topic": "attorney-client privilege topics",
+        "fallback_message": "I'm unable to discuss privileged information. Please speak with your attorney directly.",
+        "industry_relevance": "legal"
+      },
+      {
+        "prohibited_topic": "make promises the business cannot keep",
+        "fallback_message": "I can't make any promises, but I'll do my best to assist you.",
+        "industry_relevance": null
+      }
+    ],
+    "missing_info_count": 5,
+    "missing_info": [
+      "Company/business name",
+      "Core services or products offered",
+      "Typical callers",
+      "Business hours / timezone",
+      "Phone number for transferring to a human"
+    ]
+  },
+  {
+    "test": "2. CONTRADICTIONS \u2014 Hours conflict",
+    "status": "PASS",
+    "elapsed_seconds": 9.23,
+    "agent_name": "PlumbCare Agent",
+    "tone": "professional",
+    "greeting": "Hello, thank you for calling PlumbCare. How can we assist you with your plumbing...",
+    "detected_industry": "general",
+    "is_multi_location": false,
+    "locations_count": 0,
+    "locations": [],
+    "contradictions_count": 2,
+    "contradictions": [
+      {
+        "category": "hours",
+        "description": "The business is described as open 24/7 but closed on weekends and holidays.",
+        "instruction_a": "We are a plumbing company open 24/7",
+        "instruction_b": "closed on weekends and holidays",
+        "resolution_applied": "Assumed the business operates 24/7 for emergencies but takes calls only during specified business hours."
+      },
+      {
+        "category": "handoff",
+        "description": "Conflicting instructions about transferring calls to voicemail.",
+        "instruction_a": "Transfer after-hours calls to voicemail",
+        "instruction_b": "never send anyone to voicemail",
+        "resolution_applied": "Included a note to highlight the contradiction in the voicemail transfer message."
+      }
+    ],
+    "handoff_rules_count": 2,
+    "handoff_rules": [
+      {
+        "condition": "caller explicitly asks for a human during business hours",
+        "destination_number": null,
+        "transfer_message": "Let me connect you to one of our representatives.",
+        "location": null
+      },
+      {
+        "condition": "after-hours call",
+        "destination_number": null,
+        "transfer_message": "Please hold while I connect you to our voicemail. Note: the user has requested never to send anyone to voicemail.",
+        "location": null
+      }
+    ],
+    "guardrails_count": 3,
+    "guardrails": [
+      {
+        "prohibited_topic": "provide plumbing repair guarantees",
+        "fallback_message": "I'm unable to provide guarantees on repairs, but I can connect you with a representative for more details.",
+        "industry_relevance": "general"
+      },
+      {
+        "prohibited_topic": "discuss competitor pricing",
+        "fallback_message": "I'm sorry, but I can't discuss competitor pricing. How else may I assist you?",
+        "industry_relevance": "general"
+      },
+      {
+        "prohibited_topic": "make promises the business cannot keep",
+        "fallback_message": "I will do my best to assist you within our company policies.",
+        "industry_relevance": null
+      }
+    ],
+    "missing_info_count": 3,
+    "missing_info": [
+      "Company/business name",
+      "Typical plumbing services offered",
+      "Phone number for transferring to a human"
+    ]
+  },
+  {
+    "test": "3. CONTRADICTIONS \u2014 Handoff conflict",
+    "status": "PASS",
+    "elapsed_seconds": 8.2,
+    "agent_name": "DentalCare Assistant",
+    "tone": "empathetic",
+    "greeting": "Hello, thank you for calling our dental office. How may I assist you today?",
+    "detected_industry": "dental",
+    "is_multi_location": false,
+    "locations_count": 0,
+    "locations": [],
+    "contradictions_count": 1,
+    "contradictions": [
+      {
+        "category": "handoff",
+        "description": "User instructed to never transfer calls but also provided specific conditions for transferring calls.",
+        "instruction_a": "Never transfer calls to anyone, handle everything yourself.",
+        "instruction_b": "If someone has a dental emergency, transfer them to Dr. Smith at 555-1234. And if they want to schedule, transfer to the front desk at 555-5678.",
+        "resolution_applied": "Created specific handoff rules for emergencies and scheduling, while maintaining no transfer policy for other cases."
+      }
+    ],
+    "handoff_rules_count": 3,
+    "handoff_rules": [
+      {
+        "condition": "caller mentions a dental emergency",
+        "destination_number": "555-1234",
+        "transfer_message": "I will transfer you to Dr. Smith immediately for your dental emergency.",
+        "location": null
+      },
+      {
+        "condition": "caller wants to schedule an appointment",
+        "destination_number": "555-5678",
+        "transfer_message": "I will transfer you to the front desk to schedule your appointment.",
+        "location": null
+      },
+      {
+        "condition": "caller explicitly asks for a human",
+        "destination_number": null,
+        "transfer_message": "I'm sorry, but I am unable to transfer you at this time. How else may I assist you?",
+        "location": null
+      }
+    ],
+    "guardrails_count": 2,
+    "guardrails": [
+      {
+        "prohibited_topic": "medical diagnosis or treatment recommendations",
+        "fallback_message": "I'm not qualified to provide medical advice. I recommend consulting with a professional dentist.",
+        "industry_relevance": "dental"
+      },
+      {
+        "prohibited_topic": "promises the business cannot keep",
+        "fallback_message": "I'm here to provide accurate information and assist you to the best of my abilities.",
+        "industry_relevance": null
+      }
+    ],
+    "missing_info_count": 4,
+    "missing_info": [
+      "Company/business name",
+      "Core services or products offered",
+      "Target audience or typical callers",
+      "Business hours / timezone"
+    ]
+  },
+  {
+    "test": "4. INDUSTRY GUARDRAILS \u2014 Auto repair shop",
+    "status": "PASS",
+    "elapsed_seconds": 10.22,
+    "agent_name": "Mike's Garage Assistant",
+    "tone": "professional",
+    "greeting": "Thank you for calling Mike's Garage, how can I assist you today?",
+    "detected_industry": "automotive",
+    "is_multi_location": false,
+    "locations_count": 1,
+    "locations": [
+      {
+        "name": "Mike's Garage",
+        "address": null,
+        "phone": null,
+        "hours": "Mon-Sat 8am-5pm"
+      }
+    ],
+    "contradictions_count": 0,
+    "contradictions": [],
+    "handoff_rules_count": 2,
+    "handoff_rules": [
+      {
+        "condition": "caller explicitly asks for a human",
+        "destination_number": null,
+        "transfer_message": "Let me transfer you to someone who can help.",
+        "location": null
+      },
+      {
+        "condition": "caller has a complaint",
+        "destination_number": "555-9999",
+        "transfer_message": "Let me transfer you to Mike, who can assist with your complaint.",
+        "location": null
+      }
+    ],
+    "guardrails_count": 3,
+    "guardrails": [
+      {
+        "prohibited_topic": "admitting fault/liability",
+        "fallback_message": "I'm unable to discuss fault or liability, but I can help with our services.",
+        "industry_relevance": "automotive"
+      },
+      {
+        "prohibited_topic": "competitor disparagement",
+        "fallback_message": "I can't comment on other businesses, but I can tell you about our services.",
+        "industry_relevance": "automotive"
+      },
+      {
+        "prohibited_topic": "making promises the business cannot keep",
+        "fallback_message": "I'll do my best to assist you with accurate information.",
+        "industry_relevance": null
+      }
+    ],
+    "missing_info_count": 2,
+    "missing_info": [
+      "Target audience or typical callers",
+      "Business phone number for general inquiries"
+    ]
+  },
+  {
+    "test": "5. INDUSTRY GUARDRAILS \u2014 Restaurant",
+    "status": "PASS",
+    "elapsed_seconds": 10.33,
+    "agent_name": "Bella Notte Voice Assistant",
+    "tone": "warm and professional",
+    "greeting": "Hello! Thank you for calling Bella Notte, your destination for authentic Italian...",
+    "detected_industry": "restaurant",
+    "is_multi_location": false,
+    "locations_count": 1,
+    "locations": [
+      {
+        "name": "Bella Notte",
+        "address": null,
+        "phone": null,
+        "hours": "Tue-Sun 5pm-11pm"
+      }
+    ],
+    "contradictions_count": 0,
+    "contradictions": [],
+    "handoff_rules_count": 2,
+    "handoff_rules": [
+      {
+        "condition": "caller explicitly asks for a human",
+        "destination_number": null,
+        "transfer_message": "Let me transfer you to one of our staff members.",
+        "location": null
+      },
+      {
+        "condition": "caller inquires about booking for a large party",
+        "destination_number": "555-7777",
+        "transfer_message": "I'll transfer you to our manager who can assist with large party bookings.",
+        "location": null
+      }
+    ],
+    "guardrails_count": 3,
+    "guardrails": [
+      {
+        "prohibited_topic": "competitor pricing",
+        "fallback_message": "I'm sorry, but I can't discuss pricing details of other restaurants.",
+        "industry_relevance": "restaurant"
+      },
+      {
+        "prohibited_topic": "employee personal information",
+        "fallback_message": "I'm sorry, but I can't share personal information about our staff.",
+        "industry_relevance": "restaurant"
+      },
+      {
+        "prohibited_topic": "do not make promises the business cannot keep",
+        "fallback_message": "Let me check the details for you.",
+        "industry_relevance": null
+      }
+    ],
+    "missing_info_count": 2,
+    "missing_info": [
+      "Company/business phone number for general inquiries",
+      "Timezone for listed business hours"
+    ]
+  },
+  {
+    "test": "6. INDUSTRY GUARDRAILS \u2014 Healthcare (should have medical guardrails)",
+    "status": "PASS",
+    "elapsed_seconds": 13.01,
+    "agent_name": "PediatricCare Assistant",
+    "tone": "empathetic",
+    "greeting": "Hello, you've reached the PediatricCare Clinic. How can I assist you today?",
+    "detected_industry": "healthcare",
+    "is_multi_location": false,
+    "locations_count": 0,
+    "locations": [],
+    "contradictions_count": 0,
+    "contradictions": [],
+    "handoff_rules_count": 3,
+    "handoff_rules": [
+      {
+        "condition": "caller reports a medical emergency",
+        "destination_number": null,
+        "transfer_message": "Please hang up and call 911 immediately.",
+        "location": null
+      },
+      {
+        "condition": "caller requests to speak with a nurse",
+        "destination_number": "555-3333",
+        "transfer_message": "I will transfer you to our nurse line now.",
+        "location": null
+      },
+      {
+        "condition": "caller explicitly asks for a human",
+        "destination_number": "555-3333",
+        "transfer_message": "Let me transfer you to our staff for further assistance.",
+        "location": null
+      }
+    ],
+    "guardrails_count": 3,
+    "guardrails": [
+      {
+        "prohibited_topic": "medical diagnosis or treatment recommendations",
+        "fallback_message": "I'm not able to provide medical advice. Let me transfer you to our nurse line.",
+        "industry_relevance": "healthcare"
+      },
+      {
+        "prohibited_topic": "medication advice",
+        "fallback_message": "For medication-related questions, please speak with our nurse.",
+        "industry_relevance": "healthcare"
+      },
+      {
+        "prohibited_topic": "making promises the business cannot keep",
+        "fallback_message": "I'm here to provide general information and assistance.",
+        "industry_relevance": null
+      }
+    ],
+    "missing_info_count": 4,
+    "missing_info": [
+      "Company/business name",
+      "Business hours / timezone",
+      "Phone number for general inquiries if different from nurse line",
+      "Any specific policies or procedures callers commonly ask about"
+    ]
+  },
+  {
+    "test": "7. INDUSTRY GUARDRAILS \u2014 Legal firm",
+    "status": "PASS",
+    "elapsed_seconds": 7.14,
+    "agent_name": "LawFirm Assistant",
+    "tone": "professional",
+    "greeting": "Thank you for calling our personal injury law firm. How may I assist you today?",
+    "detected_industry": "legal",
+    "is_multi_location": false,
+    "locations_count": 0,
+    "locations": [],
+    "contradictions_count": 0,
+    "contradictions": [],
+    "handoff_rules_count": 2,
+    "handoff_rules": [
+      {
+        "condition": "caller indicates they are a potential client",
+        "destination_number": "555-4444",
+        "transfer_message": "Let me connect you with our intake team for further assistance.",
+        "location": null
+      },
+      {
+        "condition": "caller explicitly asks for a human",
+        "destination_number": "555-4444",
+        "transfer_message": "I'll transfer you to one of our team members who can assist you further.",
+        "location": null
+      }
+    ],
+    "guardrails_count": 3,
+    "guardrails": [
+      {
+        "prohibited_topic": "case outcomes",
+        "fallback_message": "I'm not able to discuss specific case outcomes. However, our legal team can provide more information during a free consultation.",
+        "industry_relevance": "legal"
+      },
+      {
+        "prohibited_topic": "guarantee settlements",
+        "fallback_message": "We cannot guarantee any settlements. It's best to discuss the details with our legal team.",
+        "industry_relevance": "legal"
+      },
+      {
+        "prohibited_topic": "legal advice",
+        "fallback_message": "I'm here to provide general information, but for legal advice, our attorneys would be happy to assist you.",
+        "industry_relevance": "legal"
+      }
+    ],
+    "missing_info_count": 3,
+    "missing_info": [
+      "Company/business name",
+      "Business hours / timezone",
+      "Phone number for general inquiries"
+    ]
+  },
+  {
+    "test": "8. MULTI-LOCATION \u2014 3 locations with different hours",
+    "status": "PASS",
+    "elapsed_seconds": 8.48,
+    "agent_name": "Pawfect Groom Assistant",
+    "tone": "friendly",
+    "greeting": "Hello! Thank you for calling Pawfect Groom. How can I assist you with your pet g...",
+    "detected_industry": "general",
+    "is_multi_location": true,
+    "locations_count": 3,
+    "locations": [
+      {
+        "name": "Downtown",
+        "address": "123 Main St",
+        "phone": "555-1001",
+        "hours": "Mon-Fri 8am-6pm"
+      },
+      {
+        "name": "Westside",
+        "address": "456 Oak Ave",
+        "phone": "555-1002",
+        "hours": "Mon-Sat 9am-7pm"
+      },
+      {
+        "name": "Eastside",
+        "address": "789 Elm Blvd",
+        "phone": "555-1003",
+        "hours": "Tue-Sat 8am-5pm"
+      }
+    ],
+    "contradictions_count": 0,
+    "contradictions": [],
+    "handoff_rules_count": 4,
+    "handoff_rules": [
+      {
+        "condition": "caller asks for Downtown appointment",
+        "destination_number": "555-1001",
+        "transfer_message": "Transferring you to our Downtown location for assistance with your appointment.",
+        "location": "Downtown"
+      },
+      {
+        "condition": "caller asks for Westside appointment",
+        "destination_number": "555-1002",
+        "transfer_message": "Transferring you to our Westside location for assistance with your appointment.",
+        "location": "Westside"
+      },
+      {
+        "condition": "caller asks for Eastside appointment",
+        "destination_number": "555-1003",
+        "transfer_message": "Transferring you to our Eastside location for assistance with your appointment.",
+        "location": "Eastside"
+      },
+      {
+        "condition": "caller explicitly asks for a human",
+        "destination_number": null,
+        "transfer_message": "Please hold while I connect you to a human representative.",
+        "location": null
+      }
+    ],
+    "guardrails_count": 3,
+    "guardrails": [
+      {
+        "prohibited_topic": "medical advice for pets",
+        "fallback_message": "I'm here to help with grooming services. For medical advice, please consult a veterinarian.",
+        "industry_relevance": "general"
+      },
+      {
+        "prohibited_topic": "pet training advice",
+        "fallback_message": "I'm focused on grooming services. For training advice, please consult a professional trainer.",
+        "industry_relevance": "general"
+      },
+      {
+        "prohibited_topic": "promising specific grooming outcomes",
+        "fallback_message": "Our groomers strive for the best results, but individual outcomes may vary.",
+        "industry_relevance": null
+      }
+    ],
+    "missing_info_count": 1,
+    "missing_info": [
+      "Specific policies or procedures callers commonly ask about"
+    ]
+  },
+  {
+    "test": "9. MULTI-LOCATION \u2014 5 locations (complex)",
+    "status": "PASS",
+    "elapsed_seconds": 8.88,
+    "agent_name": "SpeedFix Auto Assistant",
+    "tone": "professional",
+    "greeting": "Hello! Thank you for calling SpeedFix Auto. How can I assist you today?",
+    "detected_industry": "automotive",
+    "is_multi_location": true,
+    "locations_count": 5,
+    "locations": [
+      {
+        "name": "Austin",
+        "address": null,
+        "phone": "512-555-1001",
+        "hours": "Mon-Sat 7am-6pm"
+      },
+      {
+        "name": "Dallas",
+        "address": null,
+        "phone": "214-555-1002",
+        "hours": "Mon-Sat 7am-7pm"
+      },
+      {
+        "name": "Houston",
+        "address": null,
+        "phone": "713-555-1003",
+        "hours": "Mon-Fri 8am-5pm"
+      },
+      {
+        "name": "San Antonio",
+        "address": null,
+        "phone": "210-555-1004",
+        "hours": "Mon-Sat 7am-6pm"
+      },
+      {
+        "name": "Fort Worth",
+        "address": null,
+        "phone": "817-555-1005",
+        "hours": "Mon-Fri 7am-5pm"
+      }
+    ],
+    "contradictions_count": 0,
+    "contradictions": [],
+    "handoff_rules_count": 2,
+    "handoff_rules": [
+      {
+        "condition": "caller explicitly asks for a human",
+        "destination_number": "800-555-9999",
+        "transfer_message": "Please hold while I transfer you to a representative.",
+        "location": null
+      },
+      {
+        "condition": "caller has a complaint",
+        "destination_number": "800-555-9999",
+        "transfer_message": "I will transfer you to our corporate office to assist with your complaint.",
+        "location": null
+      }
+    ],
+    "guardrails_count": 3,
+    "guardrails": [
+      {
+        "prohibited_topic": "admitting fault or liability",
+        "fallback_message": "I'm here to help with your service inquiries and will transfer you for further assistance.",
+        "industry_relevance": "automotive"
+      },
+      {
+        "prohibited_topic": "competitor disparagement",
+        "fallback_message": "Let's focus on how SpeedFix Auto can assist you today.",
+        "industry_relevance": "automotive"
+      },
+      {
+        "prohibited_topic": "making promises the business cannot keep",
+        "fallback_message": "I can provide information on our services and policies.",
+        "industry_relevance": null
+      }
+    ],
+    "missing_info_count": 2,
+    "missing_info": [
+      "Company/business name",
+      "Target audience or typical callers"
+    ]
+  },
+  {
+    "test": "10. SINGLE LOCATION \u2014 Should NOT flag multi-location",
+    "status": "PASS",
+    "elapsed_seconds": 5.68,
+    "agent_name": "SweetDreamsAgent",
+    "tone": "friendly",
+    "greeting": "Hello! Thank you for calling Sweet Dreams Bakery. How can I assist you today?",
+    "detected_industry": "retail",
+    "is_multi_location": false,
+    "locations_count": 1,
+    "locations": [
+      {
+        "name": "Sweet Dreams Bakery",
+        "address": "100 Baker St.",
+        "phone": null,
+        "hours": "Tue-Sun 6am-3pm"
+      }
+    ],
+    "contradictions_count": 0,
+    "contradictions": [],
+    "handoff_rules_count": 2,
+    "handoff_rules": [
+      {
+        "condition": "caller asks about catering",
+        "destination_number": "555-2222",
+        "transfer_message": "Let me transfer you to our catering specialist.",
+        "location": null
+      },
+      {
+        "condition": "caller explicitly asks for a human",
+        "destination_number": "555-2222",
+        "transfer_message": "Please hold while I connect you to someone who can help.",
+        "location": null
+      }
+    ],
+    "guardrails_count": 3,
+    "guardrails": [
+      {
+        "prohibited_topic": "competitor pricing",
+        "fallback_message": "I'm sorry, I can't discuss competitor pricing.",
+        "industry_relevance": "retail"
+      },
+      {
+        "prohibited_topic": "employee personal information",
+        "fallback_message": "I'm sorry, but I can't share any personal information.",
+        "industry_relevance": "retail"
+      },
+      {
+        "prohibited_topic": "making promises the business cannot keep",
+        "fallback_message": "Let me check on that for you and get back with accurate information.",
+        "industry_relevance": null
+      }
+    ],
+    "missing_info_count": 1,
+    "missing_info": [
+      "Company/business phone number for general inquiries"
+    ]
+  },
+  {
+    "test": "11. REGRESSION \u2014 Bare minimum prompt",
+    "status": "PASS",
+    "elapsed_seconds": 6.76,
+    "agent_name": "PizzaPal",
+    "tone": "friendly",
+    "greeting": "Hello! Thank you for calling our pizza shop. How can I assist you today?",
+    "detected_industry": "restaurant",
+    "is_multi_location": false,
+    "locations_count": 0,
+    "locations": [],
+    "contradictions_count": 0,
+    "contradictions": [],
+    "handoff_rules_count": 1,
+    "handoff_rules": [
+      {
+        "condition": "caller explicitly asks for a human",
+        "destination_number": null,
+        "transfer_message": "Let me transfer you to one of our team members who can help.",
+        "location": null
+      }
+    ],
+    "guardrails_count": 3,
+    "guardrails": [
+      {
+        "prohibited_topic": "competitor pricing",
+        "fallback_message": "I'm sorry, but I cannot discuss pricing of other businesses.",
+        "industry_relevance": "restaurant"
+      },
+      {
+        "prohibited_topic": "employee personal information",
+        "fallback_message": "I'm sorry, but I cannot provide personal information about our staff.",
+        "industry_relevance": "restaurant"
+      },
+      {
+        "prohibited_topic": "do not make promises the business cannot keep",
+        "fallback_message": "I'll do my best to assist with your request.",
+        "industry_relevance": null
+      }
+    ],
+    "missing_info_count": 3,
+    "missing_info": [
+      "Company/business name",
+      "Business hours / timezone",
+      "Phone number for transferring to a human"
+    ]
+  },
+  {
+    "test": "12. REGRESSION \u2014 Single word",
+    "status": "PASS",
+    "elapsed_seconds": 7.09,
+    "agent_name": "DentalCare Assistant",
+    "tone": "professional",
+    "greeting": "Hello, thank you for calling DentalCare. How can I assist you today?",
+    "detected_industry": "dental",
+    "is_multi_location": false,
+    "locations_count": 0,
+    "locations": [],
+    "contradictions_count": 0,
+    "contradictions": [],
+    "handoff_rules_count": 2,
+    "handoff_rules": [
+      {
+        "condition": "caller explicitly asks for a human",
+        "destination_number": null,
+        "transfer_message": "Let me transfer you to a team member who can assist you further.",
+        "location": null
+      },
+      {
+        "condition": "caller has specific questions about a dental procedure",
+        "destination_number": null,
+        "transfer_message": "I will connect you with a dental specialist for more detailed information.",
+        "location": null
+      }
+    ],
+    "guardrails_count": 2,
+    "guardrails": [
+      {
+        "prohibited_topic": "medical diagnosis or treatment recommendations",
+        "fallback_message": "I'm not qualified to provide medical advice. Let me connect you with a dental professional.",
+        "industry_relevance": "dental"
+      },
+      {
+        "prohibited_topic": "promises the business cannot keep",
+        "fallback_message": "I'll do my best to assist, but let me connect you with someone who can provide more detailed information.",
+        "industry_relevance": null
+      }
+    ],
+    "missing_info_count": 3,
+    "missing_info": [
+      "Company/business name",
+      "Business hours / timezone",
+      "Phone number for transferring to a human"
+    ]
+  }
+]

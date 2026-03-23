@@ -1,0 +1,54 @@
+{% extends "layouts/public.html" %}
+
+{% block title %}Choose Your Plan - {{ platform_name }}{% endblock %}
+
+{% block content %}
+<div class="min-h-[80vh] flex items-center justify-center px-6 py-12">
+    <div class="w-full max-w-4xl">
+        <!-- Progress -->
+        <div class="flex items-center justify-center gap-3 mb-10">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center text-sm">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                </div>
+                <span class="text-sm font-medium text-surface-500">Organization</span>
+            </div>
+            <div class="w-12 h-px bg-brand-600"></div>
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center text-sm font-semibold">2</div>
+                <span class="text-sm font-medium text-surface-900">Choose Plan</span>
+            </div>
+        </div>
+
+        <div class="text-center mb-8">
+            <h2 class="text-xl font-bold text-surface-900">Select a plan to get started</h2>
+            <p class="text-sm text-surface-500 mt-1">You can change your plan at any time.</p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-6">
+            {% for plan in plans %}
+            <form method="POST" action="{{ url_for('public.onboarding_plan_select') }}" class="card-hover bg-white rounded-xl border {% if loop.index == 2 %}border-brand-600 ring-2 ring-brand-600/20{% else %}border-surface-200{% endif %} p-6 flex flex-col">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="plan_id" value="{{ plan.id }}">
+                {% if loop.index == 2 %}
+                <span class="inline-block self-start px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-brand-600 text-white mb-3">Recommended</span>
+                {% endif %}
+                <h3 class="text-lg font-bold text-surface-900">{{ plan.name }}</h3>
+                <div class="mt-3 mb-5">
+                    <span class="text-3xl font-bold text-surface-900">${{ (plan.price_monthly_cents / 100)|int }}</span>
+                    <span class="text-surface-500 text-sm">/mo</span>
+                </div>
+                <ul class="space-y-2 mb-6 flex-1 text-sm text-surface-600">
+                    <li>{{ plan.included_minutes }} minutes</li>
+                    <li>{{ plan.included_agents }} agent{{ 's' if plan.included_agents > 1 else '' }}</li>
+                    <li>{{ plan.included_numbers }} number{{ 's' if plan.included_numbers > 1 else '' }}</li>
+                </ul>
+                <button type="submit" class="w-full py-2.5 rounded-lg font-semibold transition text-sm {% if loop.index == 2 %}bg-brand-600 text-white hover:bg-brand-700{% else %}border border-surface-300 text-surface-700 hover:border-brand-600 hover:text-brand-600{% endif %}">
+                    Select Plan
+                </button>
+            </form>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

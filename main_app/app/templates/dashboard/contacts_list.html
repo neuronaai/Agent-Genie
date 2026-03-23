@@ -1,0 +1,84 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block page_title %}Contact Lists{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('dashboard.contacts_import') }}" class="btn-primary text-sm px-4 py-2 rounded-lg">
+    Import Contacts
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Suppression Quick-Add -->
+    <div class="bg-white rounded-xl border border-surface-200/60 p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-sm font-semibold text-surface-800">Do-Not-Call Suppression</h3>
+                <p class="text-xs text-surface-500 mt-0.5">Add a number to the global suppression list. This number will be excluded from all future campaigns.</p>
+            </div>
+            <form action="{{ url_for('dashboard.contacts_suppress') }}" method="POST" class="flex items-center gap-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="text" name="phone_number" placeholder="+14155551234" required
+                       class="text-sm border border-surface-200 rounded-lg px-3 py-2 w-48 focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
+                <button type="submit" class="text-sm px-4 py-2 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 transition font-medium">
+                    Suppress Number
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Contact Lists Table -->
+    <div class="bg-white rounded-xl border border-surface-200/60 overflow-hidden">
+        <div class="px-6 py-4 border-b border-surface-200/60">
+            <h2 class="text-base font-semibold text-surface-800">All Contact Lists</h2>
+        </div>
+
+        {% if contact_lists %}
+        <table class="w-full">
+            <thead>
+                <tr class="bg-surface-50/50 border-b border-surface-200/60">
+                    <th class="text-left text-xs font-semibold text-surface-500 uppercase tracking-wider px-6 py-3">Name</th>
+                    <th class="text-left text-xs font-semibold text-surface-500 uppercase tracking-wider px-6 py-3">Description</th>
+                    <th class="text-center text-xs font-semibold text-surface-500 uppercase tracking-wider px-6 py-3">Contacts</th>
+                    <th class="text-left text-xs font-semibold text-surface-500 uppercase tracking-wider px-6 py-3">Created</th>
+                    <th class="text-right text-xs font-semibold text-surface-500 uppercase tracking-wider px-6 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-surface-200/60">
+                {% for cl in contact_lists %}
+                <tr class="hover:bg-surface-50/50 transition">
+                    <td class="px-6 py-4">
+                        <a href="{{ url_for('dashboard.contacts_detail', list_id=cl.id) }}" class="text-sm font-medium text-brand-600 hover:text-brand-700">
+                            {{ cl.name }}
+                        </a>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-surface-600">{{ cl.description or '—' }}</td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-50 text-brand-700">
+                            {{ cl.contact_count or 0 }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-surface-500">{{ cl.created_at.strftime('%b %d, %Y') if cl.created_at else '—' }}</td>
+                    <td class="px-6 py-4 text-right">
+                        <form action="{{ url_for('dashboard.contacts_delete', list_id=cl.id) }}" method="POST" class="inline"
+                              onsubmit="return confirm('Delete this contact list and all its contacts?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="text-xs text-red-600 hover:text-red-800 font-medium">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="p-12 text-center">
+            <svg class="w-12 h-12 text-surface-300 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <p class="text-sm text-surface-500 mb-4">No contact lists yet. Import your first list to start outbound campaigns.</p>
+            <a href="{{ url_for('dashboard.contacts_import') }}" class="btn-primary text-sm px-4 py-2 rounded-lg">Import Contacts</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

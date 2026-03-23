@@ -1,0 +1,38 @@
+{% extends "layouts/admin.html" %}
+{% block page_title %}Payouts{% endblock %}
+{% block content %}
+<div class="bg-white rounded-xl border border-surface-200">
+    <table class="w-full">
+        <thead>
+            <tr class="border-b border-surface-200">
+                <th class="px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-surface-400">Settlement ID</th>
+                <th class="px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-surface-400">Partner</th>
+                <th class="px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-surface-400">Period</th>
+                <th class="px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-surface-400">Amount</th>
+                <th class="px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-surface-400">Status</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-surface-100">
+            {% for s in settlements %}
+            <tr class="hover:bg-surface-50 transition">
+                <td class="px-6 py-4 text-sm font-mono text-surface-700">{{ s.id[:8] }}...</td>
+                <td class="px-6 py-4 text-sm text-surface-700">{{ s.partner_id[:8] }}...</td>
+                <td class="px-6 py-4 text-sm text-surface-500">{{ s.period_start }} - {{ s.period_end }}</td>
+                <td class="px-6 py-4 text-sm font-medium text-surface-900">${{ '%.2f'|format(s.total_payout_cents / 100) }}</td>
+                <td class="px-6 py-4">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold
+                        {% if s.status == 'paid' %}bg-emerald-50 text-emerald-700
+                        {% elif s.status == 'approved' %}bg-blue-50 text-blue-700
+                        {% elif s.status == 'pending' %}bg-amber-50 text-amber-700
+                        {% else %}bg-red-50 text-red-700{% endif %}">
+                        {{ s.status|capitalize }}
+                    </span>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="px-6 py-12 text-center text-sm text-surface-500">No settlements yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

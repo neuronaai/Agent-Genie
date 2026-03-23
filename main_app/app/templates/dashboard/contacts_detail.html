@@ -1,0 +1,126 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block page_title %}{{ contact_list.name }}{% endblock %}
+
+{% block header_actions %}
+<form action="{{ url_for('dashboard.contacts_delete', list_id=contact_list.id) }}" method="POST"
+      onsubmit="return confirm('Delete this contact list and all its contacts?')">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="text-sm px-4 py-2 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 transition font-medium">
+        Delete List
+    </button>
+</form>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Breadcrumb -->
+    <nav class="text-sm text-surface-500">
+        <a href="{{ url_for('dashboard.contacts_list') }}" class="hover:text-brand-600">Contact Lists</a>
+        <span class="mx-1">/</span>
+        <span class="text-surface-800 font-medium">{{ contact_list.name }}</span>
+    </nav>
+
+    <!-- List Info -->
+    <div class="bg-white rounded-xl border border-surface-200/60 p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-surface-500">{{ contact_list.description or 'No description' }}</p>
+                <p class="text-xs text-surface-400 mt-1">Created {{ contact_list.created_at.strftime('%b %d, %Y at %I:%M %p') if contact_list.created_at else '—' }}</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-brand-600">{{ total }}</p>
+                    <p class="text-xs text-surface-500">Total Contacts</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Filter -->
+    <div class="flex items-center gap-2">
+        <span class="text-xs font-medium text-surface-500">Filter:</span>
+        <a href="{{ url_for('dashboard.contacts_detail', list_id=contact_list.id) }}"
+           class="text-xs px-3 py-1 rounded-full border {{ 'bg-brand-50 border-brand-200 text-brand-700' if not status_filter else 'border-surface-200 text-surface-600 hover:bg-surface-50' }}">
+            All
+        </a>
+        {% for s in ['active', 'opted_out', 'invalid_number'] %}
+        <a href="{{ url_for('dashboard.contacts_detail', list_id=contact_list.id, status=s) }}"
+           class="text-xs px-3 py-1 rounded-full border {{ 'bg-brand-50 border-brand-200 text-brand-700' if status_filter == s else 'border-surface-200 text-surface-600 hover:bg-surface-50' }}">
+            {{ s|replace('_', ' ')|title }}
+        </a>
+        {% endfor %}
+    </div>
+
+    <!-- Contacts Table -->
+    <div class="bg-white rounded-xl border border-surface-200/60 overflow-hidden">
+        {% if contacts %}
+        <table class="w-full">
+            <thead>
+                <tr class="bg-surface-50/50 border-b border-surface-200/60">
+                    <th class="text-left text-xs font-semibold text-surface-500 uppercase tracking-wider px-6 py-3">Phone Number</th>
+                    <th class="text-left text-xs font-semibold text-surface-500 uppercase tracking-wider px-6 py-3">Name</th>
+                    <th class="text-left text-xs font-semibold text-surface-500 uppercase tracking-wider px-6 py-3">Email</th>
+                    <th class="text-left text-xs font-semibold text-surface-500 uppercase tracking-wider px-6 py-3">Timezone</th>
+                    <th class="text-center text-xs font-semibold text-surface-500 uppercase tracking-wider px-6 py-3">Status</th>
+                    <th class="text-right text-xs font-semibold text-surface-500 uppercase tracking-wider px-6 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-surface-200/60">
+                {% for c in contacts %}
+                <tr class="hover:bg-surface-50/50 transition">
+                    <td class="px-6 py-3 text-sm font-mono text-surface-800">{{ c.phone_number }}</td>
+                    <td class="px-6 py-3 text-sm text-surface-700">{{ c.first_name or '' }} {{ c.last_name or '' }}</td>
+                    <td class="px-6 py-3 text-sm text-surface-600">{{ c.email or '—' }}</td>
+                    <td class="px-6 py-3 text-xs text-surface-500">{{ c.timezone or '—' }}</td>
+                    <td class="px-6 py-3 text-center">
+                        {% if c.status == 'active' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700">Active</span>
+                        {% elif c.status == 'opted_out' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700">Opted Out</span>
+                        {% elif c.status == 'invalid_number' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700">Invalid</span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-100 text-surface-600">{{ c.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-3 text-right">
+                        {% if c.status == 'active' %}
+                        <form action="{{ url_for('dashboard.contacts_suppress') }}" method="POST" class="inline"
+                              onsubmit="return confirm('Suppress this number across all lists?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="phone_number" value="{{ c.phone_number }}">
+                            <button type="submit" class="text-xs text-red-600 hover:text-red-800 font-medium">Suppress</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Pagination -->
+        {% if total_pages > 1 %}
+        <div class="px-6 py-3 border-t border-surface-200/60 flex items-center justify-between">
+            <p class="text-xs text-surface-500">Page {{ page }} of {{ total_pages }} ({{ total }} contacts)</p>
+            <div class="flex items-center gap-1">
+                {% if page > 1 %}
+                <a href="{{ url_for('dashboard.contacts_detail', list_id=contact_list.id, page=page-1, status=status_filter) }}"
+                   class="text-xs px-3 py-1 border border-surface-200 rounded hover:bg-surface-50">Previous</a>
+                {% endif %}
+                {% if page < total_pages %}
+                <a href="{{ url_for('dashboard.contacts_detail', list_id=contact_list.id, page=page+1, status=status_filter) }}"
+                   class="text-xs px-3 py-1 border border-surface-200 rounded hover:bg-surface-50">Next</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="p-12 text-center">
+            <p class="text-sm text-surface-500">No contacts{% if status_filter %} with status "{{ status_filter|replace('_', ' ') }}"{% endif %} in this list.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,322 @@
+{% extends "layouts/dashboard.html" %}
+{% block page_title %}Integrations{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-8">
+
+  <!-- Header -->
+  <div>
+    <h2 class="text-2xl font-bold text-surface-900">Integrations Hub</h2>
+    <p class="mt-1 text-sm text-surface-500">Connect external services to power your agent's tools and automations.</p>
+  </div>
+
+  <!-- Category Legend -->
+  <div class="flex flex-wrap gap-3">
+    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+      <span class="w-2 h-2 rounded-full bg-green-500"></span> Self-Serve
+    </span>
+    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+      <span class="w-2 h-2 rounded-full bg-amber-500"></span> Admin-Approved
+    </span>
+    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">
+      <span class="w-2 h-2 rounded-full bg-purple-500"></span> Done For You Only
+    </span>
+  </div>
+
+  {% set category_labels = {
+    'calendar': 'Calendar',
+    'email': 'Email',
+    'sms': 'SMS',
+    'note_summary': 'Note-Taking & Summary Delivery',
+    'crm_ticket': 'CRM & Ticketing',
+    'custom_webhook': 'Custom Webhook'
+  } %}
+
+  {% set category_icons = {
+    'calendar': '<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>',
+    'email': '<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>',
+    'sms': '<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>',
+    'note_summary': '<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>',
+    'crm_ticket': '<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>',
+    'custom_webhook': '<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>'
+  } %}
+
+  {% set access_colors = {
+    'self_serve': 'green',
+    'admin_approved': 'amber',
+    'dfy_only': 'purple'
+  } %}
+
+  <!-- Tool Categories -->
+  {% for cat_key, cat_templates in categories.items() %}
+  <div class="bg-white rounded-2xl border border-surface-200/60 shadow-card overflow-hidden">
+    <div class="px-6 py-4 border-b border-surface-100 flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center text-brand-600">
+        {{ category_icons.get(cat_key, '')|safe }}
+      </div>
+      <div>
+        <h3 class="text-lg font-semibold text-surface-900">{{ category_labels.get(cat_key, cat_key|title) }}</h3>
+        <p class="text-xs text-surface-500">{{ cat_templates|length }} tool{{ 's' if cat_templates|length != 1 else '' }} available</p>
+      </div>
+    </div>
+
+    <div class="divide-y divide-surface-100">
+      {% for template in cat_templates %}
+      {% set conn = connection_map.get(template.id) %}
+      {% set is_connected = conn and conn.status == 'connected' %}
+      {% set needs_reconnect = conn and conn.status == 'needs_reconnect' %}
+      {% set access_color = access_colors.get(template.access_tier, 'gray') %}
+      {% set cred_status = credential_status_map.get(conn.id) if conn else None %}
+      {% set supports_tenant_creds = template.category in ('email', 'sms') %}
+
+      <div class="px-6 py-4">
+        <!-- Main row: tool info + connect/disconnect -->
+        <div class="flex items-center justify-between">
+          <div class="flex-1">
+            <div class="flex items-center gap-2">
+              <span class="font-medium text-surface-800">{{ template.name }}</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase
+                {% if template.tool_type == 'real_time' %}bg-blue-50 text-blue-700{% else %}bg-surface-100 text-surface-600{% endif %}">
+                {{ 'Real-Time' if template.tool_type == 'real_time' else 'Post-Call' }}
+              </span>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold uppercase bg-{{ access_color }}-50 text-{{ access_color }}-700">
+                <span class="w-1.5 h-1.5 rounded-full bg-{{ access_color }}-500"></span>
+                {{ template.access_tier|replace('_', ' ')|title }}
+              </span>
+            </div>
+            <p class="text-sm text-surface-500 mt-0.5">{{ template.description or template.default_description_for_llm or 'No description available.' }}</p>
+          </div>
+
+          <div class="flex items-center gap-2 ml-4">
+            {% if needs_reconnect %}
+              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+                Reconnect Required
+              </span>
+              <form method="POST" action="{{ url_for('dashboard.integration_connect', template_id=template.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="px-3 py-1.5 text-xs font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-lg shadow-sm transition">
+                  Reconnect
+                </button>
+              </form>
+            {% elif is_connected %}
+              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Connected
+              </span>
+              {% if supports_tenant_creds and cred_status %}
+                <span class="inline-flex items-center px-2 py-1 rounded text-[10px] font-medium
+                  {% if cred_status.active_source == 'tenant' %}bg-indigo-50 text-indigo-700 border border-indigo-200
+                  {% else %}bg-surface-50 text-surface-600 border border-surface-200{% endif %}">
+                  {% if cred_status.active_source == 'tenant' %}Your Keys{% else %}Platform{% endif %}
+                </span>
+              {% endif %}
+              <form method="POST" action="{{ url_for('dashboard.integration_disconnect', connection_id=conn.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 rounded-lg border border-red-200 transition">
+                  Disconnect
+                </button>
+              </form>
+            {% elif template.access_tier == 'self_serve' %}
+              <form method="POST" action="{{ url_for('dashboard.integration_connect', template_id=template.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="px-4 py-1.5 text-xs font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg shadow-sm transition">
+                  Connect
+                </button>
+              </form>
+            {% else %}
+              <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-surface-50 text-surface-500 border border-surface-200">
+                Requires Setup
+              </span>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Credential management panel (email/sms only, when connected) -->
+        {% if is_connected and supports_tenant_creds and conn %}
+        <div class="mt-4 pt-4 border-t border-surface-100">
+          <!-- Mode toggle -->
+          <div class="flex items-center gap-4 mb-3">
+            <span class="text-xs font-semibold text-surface-600 uppercase tracking-wide">Credential Mode</span>
+            <div class="flex items-center gap-1 bg-surface-100 rounded-lg p-0.5">
+              <form method="POST" action="{{ url_for('dashboard.integration_switch_mode', connection_id=conn.id) }}" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="mode" value="platform">
+                <button type="submit" class="px-3 py-1 text-xs font-medium rounded-md transition
+                  {% if not cred_status or cred_status.mode == 'platform' %}bg-white text-surface-900 shadow-sm{% else %}text-surface-500 hover:text-surface-700{% endif %}">
+                  Platform Default
+                </button>
+              </form>
+              <form method="POST" action="{{ url_for('dashboard.integration_switch_mode', connection_id=conn.id) }}" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="mode" value="tenant">
+                <button type="submit" class="px-3 py-1 text-xs font-medium rounded-md transition
+                  {% if cred_status and cred_status.mode == 'tenant' %}bg-white text-surface-900 shadow-sm{% else %}text-surface-500 hover:text-surface-700{% endif %}">
+                  My Own Credentials
+                </button>
+              </form>
+            </div>
+          </div>
+
+          {% if cred_status and cred_status.mode == 'platform' %}
+          <!-- Platform mode info -->
+          <div class="flex items-start gap-3 p-3 rounded-lg bg-surface-50 border border-surface-200">
+            <svg class="w-5 h-5 text-surface-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div>
+              <p class="text-sm text-surface-700">Using platform-managed credentials.</p>
+              <p class="text-xs text-surface-500 mt-0.5">
+                {% if template.category == 'email' %}
+                  Emails are sent from the platform domain on your behalf. Usage is included in your plan.
+                {% else %}
+                  SMS messages are sent from the platform phone number. Usage is included in your plan.
+                {% endif %}
+              </p>
+            </div>
+          </div>
+
+          {% elif cred_status and cred_status.mode == 'tenant' %}
+          <!-- Tenant mode: credential entry form -->
+          <div class="space-y-3">
+            {% if cred_status.has_tenant_credentials %}
+            <!-- Credentials already saved -->
+            <div class="flex items-start gap-3 p-3 rounded-lg bg-green-50 border border-green-200">
+              <svg class="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+              </svg>
+              <div class="flex-1">
+                <p class="text-sm font-medium text-green-800">Your credentials are saved and encrypted.</p>
+                <p class="text-xs text-green-600 mt-0.5">
+                  {% if template.category == 'email' %}
+                    Emails will be sent using your SendGrid account. You are responsible for usage costs.
+                  {% else %}
+                    SMS messages will be sent using your Twilio account. You are responsible for usage costs.
+                  {% endif %}
+                </p>
+              </div>
+              <div class="flex items-center gap-2">
+                <form method="POST" action="{{ url_for('dashboard.integration_test_connection', connection_id=conn.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="px-3 py-1.5 text-xs font-medium text-brand-600 hover:bg-brand-50 rounded-lg border border-brand-200 transition">
+                    Test Connection
+                  </button>
+                </form>
+                <form method="POST" action="{{ url_for('dashboard.integration_clear_credentials', connection_id=conn.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 rounded-lg border border-red-200 transition"
+                          onclick="return confirm('Remove your credentials and revert to platform defaults?')">
+                    Remove
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            <!-- Update credentials (collapsed by default) -->
+            <details class="group">
+              <summary class="text-xs font-medium text-brand-600 cursor-pointer hover:text-brand-700">
+                Update credentials
+              </summary>
+              <div class="mt-2">
+            {% endif %}
+
+            <!-- Credential entry form -->
+            <form method="POST" action="{{ url_for('dashboard.integration_save_credentials', connection_id=conn.id) }}"
+                  class="p-4 rounded-lg bg-surface-50 border border-surface-200 space-y-3">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+              {% if template.category == 'email' %}
+              <div>
+                <label class="block text-xs font-medium text-surface-700 mb-1">SendGrid API Key <span class="text-red-500">*</span></label>
+                <input type="password" name="sendgrid_api_key" required
+                       placeholder="SG.xxxxxxxxxxxxxxxxxxxxxxxx"
+                       class="w-full px-3 py-2 text-sm border border-surface-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-medium text-surface-700 mb-1">From Email <span class="text-surface-400">(optional)</span></label>
+                  <input type="email" name="from_email"
+                         placeholder="noreply@yourdomain.com"
+                         class="w-full px-3 py-2 text-sm border border-surface-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-surface-700 mb-1">From Name <span class="text-surface-400">(optional)</span></label>
+                  <input type="text" name="from_name"
+                         placeholder="Your Business Name"
+                         class="w-full px-3 py-2 text-sm border border-surface-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
+                </div>
+              </div>
+              <p class="text-xs text-surface-500">
+                <svg class="w-3.5 h-3.5 inline -mt-0.5 mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                Your API key is encrypted at rest and never displayed after saving. You pay SendGrid directly for usage.
+              </p>
+
+              {% elif template.category == 'sms' %}
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-medium text-surface-700 mb-1">Twilio Account SID <span class="text-red-500">*</span></label>
+                  <input type="text" name="twilio_account_sid" required
+                         placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                         class="w-full px-3 py-2 text-sm border border-surface-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-surface-700 mb-1">Auth Token <span class="text-red-500">*</span></label>
+                  <input type="password" name="twilio_auth_token" required
+                         placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                         class="w-full px-3 py-2 text-sm border border-surface-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-surface-700 mb-1">Twilio Phone Number <span class="text-surface-400">(optional)</span></label>
+                <input type="tel" name="twilio_phone_number"
+                       placeholder="+15551234567"
+                       class="w-full px-3 py-2 text-sm border border-surface-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
+              </div>
+              <p class="text-xs text-surface-500">
+                <svg class="w-3.5 h-3.5 inline -mt-0.5 mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                Your credentials are encrypted at rest and never displayed after saving. You pay Twilio directly for usage.
+              </p>
+              {% endif %}
+
+              <div class="flex items-center gap-2 pt-1">
+                <button type="submit" class="px-4 py-2 text-xs font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg shadow-sm transition">
+                  Save & Encrypt Credentials
+                </button>
+              </div>
+            </form>
+
+            {% if cred_status and cred_status.has_tenant_credentials %}
+              </div>
+            </details>
+            {% endif %}
+          </div>
+          {% endif %}
+
+          <!-- Test connection button (platform mode) -->
+          {% if cred_status and cred_status.mode == 'platform' %}
+          <div class="mt-3 flex items-center gap-2">
+            <form method="POST" action="{{ url_for('dashboard.integration_test_connection', connection_id=conn.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="px-3 py-1.5 text-xs font-medium text-brand-600 hover:bg-brand-50 rounded-lg border border-brand-200 transition">
+                Test Connection
+              </button>
+            </form>
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+
+  {% if not categories %}
+  <div class="bg-white rounded-2xl border border-surface-200/60 shadow-card p-12 text-center">
+    <svg class="w-12 h-12 mx-auto text-surface-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+    <h3 class="mt-4 text-lg font-semibold text-surface-700">No integrations available</h3>
+    <p class="mt-1 text-sm text-surface-500">Tool templates will appear here once configured by the platform.</p>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
