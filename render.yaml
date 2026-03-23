@@ -1,37 +1,29 @@
 # ============================================================
 # AgentGenie — Render Blueprint (render.yaml)
 # ============================================================
-# This file MUST live at the repository root so Render can
-# auto-detect it.  Each service specifies an explicit rootDir
-# so Render builds from the correct subdirectory.
+# Place this file at the repository root.
 #
-# Repository layout:
-#   render.yaml              ← this file (repo root)
-#   main_app/                ← Flask web app + Celery worker
-#   services/openai_brain/   ← FastAPI brain microservice
-#
-# Deploy with: https://render.com/deploy
+# Repo layout:
+#   render.yaml
+#   main_app/
+#   services/openai_brain/
 #
 # Services:
-#   - web:    Flask + Gunicorn (main application)
-#   - brain:  FastAPI + Uvicorn (OpenAI agent generation)
-#   - worker: Celery worker (post-call tasks, async jobs)
-#
-# Infrastructure:
-#   - PostgreSQL database
-#   - Redis (Celery broker + result backend)
-#
-# On every deploy, the preDeployCommand runs:
-#   1. flask db upgrade   (apply migrations)
-#   2. python manage.py seed (insert-missing-only)
+#   - agentgenie-web    : Flask + Gunicorn
+#   - agentgenie-brain  : FastAPI + Uvicorn
+#   - agentgenie-worker : Celery worker
+#   - agentgenie-redis  : Redis
+#   - agentgenie-db     : Postgres
 # ============================================================
 
 services:
-  # ── Web Service ──────────────────────────────────────────
+  # ----------------------------------------------------------
+  # Web
+  # ----------------------------------------------------------
   - type: web
     name: agentgenie-web
     runtime: python
-    plan: starter              # $7/mo — 512MB RAM, 0.5 CPU
+    plan: starter
     rootDir: main_app
     buildCommand: pip install -r requirements.txt
     startCommand: >
@@ -52,10 +44,14 @@ services:
         value: production
       - key: FLASK_APP
         value: wsgi.py
+
+      # Core app secrets
       - key: SECRET_KEY
         generateValue: true
       - key: CREDENTIAL_ENCRYPTION_KEY
         generateValue: true
+
+      # Database / queue
       - key: DATABASE_URL
         fromDatabase:
           name: agentgenie-db
@@ -70,11 +66,25 @@ services:
           name: agentgenie-redis
           type: redis
           property: connectionString
+
+      # App identity
       - key: PLATFORM_NAME
         value: AgentGenie
       - key: PLATFORM_DOMAIN
         sync: false
-      # --- Provider keys (set manually in Render dashboard) ---
+
+      # AI brain integration
+      - key: OPENAI_API_KEY_CUSTOM
+        sync: false
+      - key: OPENAI_BRAIN_URL
+        sync: false
+      - key: BRAIN_SERVICE_TOKEN
+        fromService:
+          name: agentgenie-brain
+          type: web
+          envVarKey: BRAIN_SERVICE_TOKEN
+
+      # Optional provider keys
       - key: STRIPE_SECRET_KEY
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
@@ -99,16 +109,8 @@ services:
         sync: false
       - key: GOOGLE_REDIRECT_URI
         sync: false
-      - key: OPENAI_API_KEY_CUSTOM
-        sync: false
-      - key: OPENAI_BRAIN_URL
-        sync: false
-      - key: BRAIN_SERVICE_TOKEN
-        fromService:
-          name: agentgenie-brain
-          type: web
-          envVarKey: BRAIN_SERVICE_TOKEN
-      # --- Gmail SMTP ---
+
+      # Gmail SMTP
       - key: GMAIL_SMTP_USER
         sync: false
       - key: GMAIL_SMTP_PASSWORD
@@ -119,7 +121,8 @@ services:
         value: AgentGenie
       - key: NOTIFICATION_EMAIL_PROVIDER
         value: gmail_smtp
-      # --- Feature Flags ---
+
+      # Feature flags
       - key: FEATURE_PARTNER_PROGRAM
         value: "false"
       - key: FEATURE_DFY
@@ -127,7 +130,9 @@ services:
       - key: FEATURE_CAMPAIGNS
         value: "false"
 
-  # ── OpenAI Brain Microservice ────────────────────────────
+  # ----------------------------------------------------------
+  # Brain
+  # ----------------------------------------------------------
   - type: web
     name: agentgenie-brain
     runtime: python
@@ -150,11 +155,13 @@ services:
       - key: BRAIN_MOCK_MODE
         value: "false"
 
-  # ── Celery Worker ────────────────────────────────────────
+  # ----------------------------------------------------------
+  # Worker
+  # ----------------------------------------------------------
   - type: worker
     name: agentgenie-worker
     runtime: python
-    plan: starter              # $7/mo — 512MB RAM, 0.5 CPU
+    plan: starter
     rootDir: main_app
     buildCommand: pip install -r requirements.txt
     startCommand: >
@@ -171,6 +178,8 @@ services:
         value: production
       - key: FLASK_APP
         value: wsgi.py
+
+      # Core app secrets copied from web
       - key: SECRET_KEY
         fromService:
           name: agentgenie-web
@@ -181,6 +190,8 @@ services:
           name: agentgenie-web
           type: web
           envVarKey: CREDENTIAL_ENCRYPTION_KEY
+
+      # Database / queue
       - key: DATABASE_URL
         fromDatabase:
           name: agentgenie-db
@@ -195,87 +206,54 @@ services:
           name: agentgenie-redis
           type: redis
           property: connectionString
-      # Worker needs provider keys for executing tools
+
+      # Worker optional provider keys:
+      # Set directly in dashboard only if worker truly needs them.
+      # This avoids blueprint creation failures.
       - key: SENDGRID_API_KEY
-        fromService:
-          name: agentgenie-web
-          type: web
-          envVarKey: SENDGRID_API_KEY
+        sync: false
       - key: SENDGRID_FROM_EMAIL
-        fromService:
-          name: agentgenie-web
-          type: web
-          envVarKey: SENDGRID_FROM_EMAIL
+        sync: false
       - key: TWILIO_ACCOUNT_SID
-        fromService:
-          name: agentgenie-web
-          type: web
-          envVarKey: TWILIO_ACCOUNT_SID
+        sync: false
       - key: TWILIO_AUTH_TOKEN
-        fromService:
-          name: agentgenie-web
-          type: web
-          envVarKey: TWILIO_AUTH_TOKEN
+        sync: false
       - key: TWILIO_PHONE_NUMBER
-        fromService:
-          name: agentgenie-web
-          type: web
-          envVarKey: TWILIO_PHONE_NUMBER
+        sync: false
       - key: GOOGLE_CLIENT_ID
-        fromService:
-          name: agentgenie-web
-          type: web
-          envVarKey: GOOGLE_CLIENT_ID
+        sync: false
       - key: GOOGLE_CLIENT_SECRET
-        fromService:
-          name: agentgenie-web
-          type: web
-          envVarKey: GOOGLE_CLIENT_SECRET
+        sync: false
       - key: STRIPE_SECRET_KEY
-        fromService:
-          name: agentgenie-web
-          type: web
-          envVarKey: STRIPE_SECRET_KEY
+        sync: false
       - key: RETELL_API_KEY
-        fromService:
-          name: agentgenie-web
-          type: web
-          envVarKey: RETELL_API_KEY
-      # Worker needs Gmail SMTP for sending notifications from async tasks
+        sync: false
       - key: GMAIL_SMTP_USER
-        fromService:
-          name: agentgenie-web
-          type: web
-          envVarKey: GMAIL_SMTP_USER
+        sync: false
       - key: GMAIL_SMTP_PASSWORD
-        fromService:
-          name: agentgenie-web
-          type: web
-          envVarKey: GMAIL_SMTP_PASSWORD
+        sync: false
       - key: GMAIL_SMTP_FROM
-        fromService:
-          name: agentgenie-web
-          type: web
-          envVarKey: GMAIL_SMTP_FROM
+        sync: false
       - key: GMAIL_SMTP_FROM_NAME
-        fromService:
-          name: agentgenie-web
-          type: web
-          envVarKey: GMAIL_SMTP_FROM_NAME
+        value: AgentGenie
       - key: NOTIFICATION_EMAIL_PROVIDER
         value: gmail_smtp
 
-  # ── Redis ────────────────────────────────────────────────
+  # ----------------------------------------------------------
+  # Redis
+  # ----------------------------------------------------------
   - type: redis
     name: agentgenie-redis
-    plan: free                 # Free tier — 25MB, sufficient for task queue
+    plan: free
     maxmemoryPolicy: allkeys-lru
-    ipAllowList: []            # Only allow internal access
+    ipAllowList: []
 
-# ── PostgreSQL Database ──────────────────────────────────
 databases:
+  # ----------------------------------------------------------
+  # PostgreSQL
+  # ----------------------------------------------------------
   - name: agentgenie-db
-    plan: basic-256mb          # $7/mo — 256MB RAM, 1GB storage, 100 connections
+    plan: basic-256mb
     databaseName: agentgenie
     user: agentgenie
     postgresMajorVersion: "16"
